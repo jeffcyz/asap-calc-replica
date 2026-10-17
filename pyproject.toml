@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "asap-calc-replica"
+version = "0.1.0"
+description = "Multi-deal ASAP-to-Excel calculation replica scaffold"
+requires-python = ">=3.11"
+dependencies = [
+  "PyYAML>=6.0",
+  "openpyxl>=3.1",
+  "pywin32>=306; sys_platform == 'win32'"
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

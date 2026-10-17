@@ -1,0 +1,2 @@
+# Synthetic template only. Create a local, Git-ignored runtime_mapping.yaml per deal.
+runtime: {}

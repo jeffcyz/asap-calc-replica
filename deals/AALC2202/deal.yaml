@@ -1,0 +1,18 @@
+deal_id: AALC2202
+asap:
+  calculation_script: asap_scripts/AALC2202_periodic_calc.py
+source_tables:
+  setup: AssetSetup.csv
+  periodic: AssetPeriodic.csv
+  transaction: AssetPeriodicTransaction.csv
+  legacy: AssetPeriodicLegacy.csv # optional
+runtime:
+  payment_inputs: payment_inputs.json
+  period: period.json
+  additional_inputs: runtime_inputs.json
+benchmark:
+  source: asap_sql.csv
+excel:
+  lookup_method: INDEX_MATCH
+comparison:
+  difference: EXCEL_MINUS_ASAP

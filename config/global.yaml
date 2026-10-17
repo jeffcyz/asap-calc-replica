@@ -1,0 +1,12 @@
+project: asap-calc-replica
+excel:
+  lookup: INDEX_MATCH
+  local_new_workbook_defaults: true
+  modify_column_widths: false
+  date_style: SHORT_DATE
+  money_style: COMMA_STYLE
+  default_number_format: GENERAL
+comparison:
+  difference: EXCEL_MINUS_ASAP
+security:
+  real_input_files_tracked: false
