@@ -8,26 +8,26 @@ A multi-deal project for **semantically justified** ASAP periodic calculation re
 
 ## Repository layout
 
-- \`src/asap_calc_replica/runtime/\`: documented host-object contracts, explicit dependency registry, collection semantics gates and period context (**not an ASAP emulator**).
-- \`src/asap_calc_replica/analysis/\`: future script/dependency analyzers and a **metadata-only** A/B/C/D semantic readiness assessor.
-- \`src/asap_calc_replica/calculation/\`, \`excel/\`, \`reconciliation/\`: planned shared calculation/formula, COM and SQL comparison engines.
-- \`deals/<deal_id>/\`: deal configuration, original scripts (local-only), runtime/field mapping (local-only).
-- \`knowledge/README.md\`: local-only ASAP Knowledge Base intake guidance. Put authorized KB files under \`knowledge/asap/\` (Git-ignored), optionally linking approved ASAP-Agent knowledge locally.
-- \`runs/<deal_id>/<YYYY-MM>/\`: ignored source inputs, SQL benchmark, Excel output and per-field diagnostic reports.
-- \`docs/\`: architecture, runtime gaps, coverage, Excel requirements, phased implementation and progress.
-- \`tests/\`: synthetic scaffold and runtime contract tests.
+- `src/asap_calc_replica/runtime/`: documented host-object contracts, explicit dependency registry, collection semantics gates and period context (**not an ASAP emulator**).
+- `src/asap_calc_replica/analysis/`: future script/dependency analyzers and a **metadata-only** A/B/C/D semantic readiness assessor.
+- `src/asap_calc_replica/calculation/`, `excel/`, `reconciliation/`: planned shared calculation/formula, COM and SQL comparison engines.
+- `deals/<deal_id>/`: deal configuration, original scripts (local-only), runtime/field mapping (local-only).
+- `knowledge/README.md`: local-only ASAP Knowledge Base intake guidance. Put authorized KB files under `knowledge/asap/` (Git-ignored), optionally linking approved ASAP-Agent knowledge locally.
+- `runs/<deal_id>/<YYYY-MM>/`: ignored source inputs, SQL benchmark, Excel output and per-field diagnostic reports.
+- `docs/`: architecture, runtime gaps, coverage, Excel requirements, phased implementation and progress.
+- `tests/`: synthetic scaffold and runtime contract tests.
 
 Initial deals: AALC2201, AALC2202, AALC2401, AALC2403, AALC2404, AALC2501, AALC2502, AALC2503, AALC2601.
 
 ## Local setup (Windows + Excel)
 
 1. Clone the repository and open in VS Code. Use Python 3.11+.
-2. Create a virtual environment; install \`pip install -e ".[dev]"\`.
-3. Put original ASAP source files in \`deals/<DEAL>/asap_scripts/\` locally. Do not commit them.
-4. Put only authorized KB files under \`knowledge/asap/\` locally. Runtime contracts need source evidence, not guesses.
-5. Keep monthly CSV, period, payment_inputs, historical snapshots and SQL benchmark under \`runs/<DEAL>/<YYYY-MM>/\`.
-6. Run \`python scripts/setup_deals.py --deal AALC2201 --month 2026-09\` to create directories, and \`python -m pytest\` for synthetic unit tests. No real calculation commands exist yet.
-7. Review \`AGENTS.md\` and **Phase 1** of \`docs/implementation_plan.md\` before directing Copilot to analyze AALC2201.
+2. Create a virtual environment; install `pip install -e ".[dev]"`.
+3. Put original ASAP source files in `deals/<DEAL>/asap_scripts/` locally. Do not commit them.
+4. Put only authorized KB files under `knowledge/asap/` locally. Runtime contracts need source evidence, not guesses.
+5. Keep monthly CSV, period, payment_inputs, historical snapshots and SQL benchmark under `runs/<DEAL>/<YYYY-MM>/`.
+6. Run `python scripts/setup_deals.py --deal AALC2201 --month 2026-09` to create directories, and `python -m pytest` for synthetic unit tests. No real calculation commands exist yet.
+7. Review `AGENTS.md` and **Phase 1** of `docs/implementation_plan.md` before directing Copilot to analyze AALC2201.
 
 ## Formula and output constraints (once implemented)
 
@@ -35,8 +35,8 @@ Exact INDEX/MATCH, staged asset/transaction/portfolio calculations, local defaul
 
 ## Read next
 
-- \`docs/architecture.md\`: design boundaries.
-- \`docs/knowledge_base_integration.md\`: evidence and privacy requirements.
-- \`docs/runtime_dependency_inventory.md\`: runtime inventory schema.
-- \`docs/calculation_coverage.md\`: A/B/C/D assessment.
-- \`docs/implementation_plan.md\`: phased roadmap.
+- `docs/architecture.md`: design boundaries.
+- `docs/knowledge_base_integration.md`: evidence and privacy requirements.
+- `docs/runtime_dependency_inventory.md`: runtime inventory schema.
+- `docs/calculation_coverage.md`: A/B/C/D assessment.
+- `docs/implementation_plan.md`: phased roadmap.

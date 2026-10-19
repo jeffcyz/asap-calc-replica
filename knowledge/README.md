@@ -1,6 +1,6 @@
 # Local-only ASAP knowledge intake
 
-The **real ASAP knowledge base belongs under \`knowledge/asap/\` on your local machine** and that folder is Git-ignored. Do not upload employer manuals, internal API documentation, deal scripts, database extracts or screenshots to this public repository unless expressly authorized.
+The **real ASAP knowledge base belongs under `knowledge/asap/` on your local machine** and that folder is Git-ignored. Do not upload employer manuals, internal API documentation, deal scripts, database extracts or screenshots to this public repository unless expressly authorized.
 
 Suggested local-only arrangement:
 
@@ -19,4 +19,4 @@ You may link a separately authorized, locally available knowledge base (such as 
 
 Every runtime contract should cite a concrete source version and location, plus record unknown side effects and missing input data separately.
 
-See \`docs/knowledge_base_integration.md\`.
+See `docs/knowledge_base_integration.md`.
