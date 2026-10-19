@@ -13,6 +13,6 @@ The semantic resolver exposes a **conservative, provisional readiness classifica
 
 Required field assessment metadata: output field, source expression/lines, required symbols, contracts/evidence, expression semantic support, Excel equivalence support, runtime mapping need, required and available inputs, classification, unresolved questions.
 
-Real reports should be written to `runs/<deal>/<month>/reports/calculation_coverage.csv` and are excluded from Git. The committed module `analysis/semantic_resolver.py` supports **metadata-only** classification; automatically extracting source and input evidence is future Phase 1 work.
+Real reports should be written to `runs/<deal>/<month>/reports/calculation_coverage.csv` and are excluded from Git; only the folder's `.gitkeep` is tracked. The committed module `analysis/semantic_resolver.py` supports **metadata-only** classification; automatically extracting source and input evidence is future Phase 1 work.
 
 SQL result columns are **benchmarks only**, never substitutes for unresolved calculation inputs.

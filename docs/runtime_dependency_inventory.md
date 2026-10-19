@@ -26,4 +26,4 @@ Distinguish:
 
 Inventory should cover collection membership, current/previous period access, payment_inputs, critical_dates, index access, transactions, portfolio waterfall phases and source-to-SQL schema mappings.
 
-Do not embed private inventory data in public Git-tracked docs. Export real inventory to the ignored `runs/<deal>/<month>/reports/` location.
+Do not embed private inventory data in public Git-tracked docs. Export real inventory as ignored files under the Git-tracked `runs/<deal>/<month>/reports/` directory.

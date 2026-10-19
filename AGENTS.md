@@ -19,7 +19,7 @@
 - Deal scripts: `deals/{deal_id}/asap_scripts/` (read-only, Git-ignored).
 - Deal mappings: `deals/{deal_id}/mappings/` (private, Git-ignored).
 - ASAP KB: `knowledge/asap/` (local-only, Git-ignored), optionally approved local ASAP-Agent reference.
-- Raw data, payment_inputs, period and SQL benchmark: `runs/{deal_id}/{YYYY-MM}/` (Git-ignored).
+- Run directories: `runs/{deal_id}/{YYYY-MM}/` are **tracked through `.gitkeep` files**; raw data, payment_inputs, period, SQL benchmarks, output workbooks and reports remain ignored.
 - Engine: `src/asap_calc_replica/`.
 
 ## Excel / validation rules
@@ -32,5 +32,6 @@
 
 ## Public repository security
 - Do **not** stage/push scripts, client data, actual field/rate mappings, private KB documents, screenshots, SQL results, period input records, real workbooks or credentials.
+- Preserve `.gitkeep` markers for each new run subdirectory; never force-add real run data to this public repository.
 - A .gitignore is an additional guard, not a guarantee: review `git status` and staged diff and check employer policy before using external AI tools.
 - Keep all public test examples synthetic.

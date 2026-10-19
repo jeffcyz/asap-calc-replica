@@ -1,6 +1,6 @@
 # Architecture
 
-The shared engine in `src/` is separate from per-deal, read-only ASAP sources and mappings in `deals/` and per-month input/SQL/output snapshots in `runs/`.
+The shared engine in `src/` is separate from per-deal, read-only ASAP sources and mappings in `deals/` and per-month input/SQL/output snapshots in `runs/`. The `runs/` hierarchy is **Git-tracked via `.gitkeep` markers**, while data files inside remain ignored.
 
 ## Important constraint: ASAP is not locally executable
 

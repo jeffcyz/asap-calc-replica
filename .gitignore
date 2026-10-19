@@ -1,5 +1,9 @@
-# Confidential inputs, source scripts and outputs
-runs/
+# Track runs/ directory structures while ignoring ALL contents except .gitkeep.
+runs/**/*
+!runs/**/
+!runs/**/.gitkeep
+
+# Other sensitive local-only resources
 knowledge/asap/
 deals/*/asap_scripts/*
 !deals/*/asap_scripts/.gitkeep

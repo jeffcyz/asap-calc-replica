@@ -1,6 +1,7 @@
 # Project progress
 
 - [x] Phase 0 — Initial multi-deal repository scaffold.
+- [x] Track October 2026 run folders for all nine AALC deals; preserve data-file ignore rules.
 - [x] Phase 0.5 — Runtime semantics architecture and planning update: evidence-backed contract dataclasses/registry, explicit period inputs, collection contract gate, conservative A/B/C/D metadata classifier and synthetic tests.
 - [ ] Phase 1 — AALC2201 **actual** runtime dependency inventory and input sufficiency assessment (needs local authorized scripts, data, KB).
 - [ ] Phase 2 — Excel formula vertical slice and actual Excel COM recalculation.
