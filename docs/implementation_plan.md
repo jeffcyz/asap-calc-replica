@@ -1,26 +1,31 @@
 # Phased implementation plan
 
-Each phase requires a review checkpoint; do not proceed automatically.
+Each phase has a review checkpoint; do not proceed automatically. **Do not begin formula generation before runtime semantics and input sufficiency are assessed.**
 
-## Phase 0 — Scaffolding
-Directory structure, public-safe templates, documentation, packaging, basic synthetic tests, local run folder helper.
+## Phase 0 — Multi-deal scaffold (complete)
+Project structure, safe templates, packaging and synthetic scaffold tests.
 
-## Phase 1 — AALC2201 dependency inventory
-Read complete local ASAP script and schemas; trace every field assignment including mutation order, cross-period dependencies, transaction loops, deal critical dates, payment_inputs, index services and portfolio aggregation. Deliver dependencies report, missing inputs and canonical key design. **No Excel workbook yet.**
+## Phase 0.5 — Runtime semantics architecture (complete)
+Introduce evidence-backed ASAP Runtime Contracts, dependency registry, explicit period context, collection semantic gates, and provisional A/B/C/D classifier. Add local-only KB conventions and updated documentation. **No real method semantics or calculation formulas are asserted.**
+
+## Phase 1 — AALC2201 ASAP semantics and input sufficiency assessment (next)
+Read authorized complete local script and relevant schemas. Inventory objects, dynamic methods, collection filters, lifecycle/side effects, sequential assignments, periods, index and historical state. Link each unknown to **specific** authorized KB sections; distinguish semantic gaps, data gaps and Excel equivalence gaps. Build ordered field dependency graph and classify *every calculated output field* A/B/C/D. Persist private deal-specific details under ignored \`runs/AALC2201/<month>/reports/\`.
+
+Deliverables: runtime dependency inventory, required input snapshots, missing inputs report, field lineage, coverage assessment and architectural decisions requiring approval. **Do not generate Excel yet.**
 
 ## Phase 2 — Excel formula vertical slice
-Load synthetic/sample authorized data; test exact INDEX/MATCH and transaction aggregation; implement one asset and a small group of fields with intermediate stages; generate workbook through Windows Excel COM with required formatting. Validate by recalculating.
+Once Phase 1 is reviewed, implement one real/authorized or synthetic asset across a few fields. Validate exact INDEX/MATCH, transaction aggregation, staged portfolio dependencies and local-default Excel COM formatting. Recalculate and compare against SQL only where data and semantics are complete.
 
-## Phase 3 — Full AALC2201 computation
-Implement all resolvable asset/transaction/portfolio waterfall and carryforward stages with explicit exceptions. Report unsupported formulas; no invented values.
+## Phase 3 — Full AALC2201 formula model
+Implement all A/B fields and C fields after missing inputs are supplied. Keep D fields unresolved; no guessed mappings. Preserve mutation order, transaction loops, carryforward, portfolio allocation and period exceptions.
 
 ## Phase 4 — SQL reconciliation
-Read independently exported SQL field values; output identity columns, Excel, ASAP SQL, Difference (Excel minus SQL); verify keys, row coverage and Excel recalc.
+ASAP SQL benchmark: independent source of expected output. Long-form identity + Excel + ASAP SQL + Difference (Excel - ASAP SQL), no invented zeros, verified joins, matching branches and actual Excel recalculation.
 
 ## Phase 5 — Second-deal architecture test
-Integrate AALC2404 to test reusability. Adapt shared *infrastructure* only; do not presume business formulas are common.
+Integrate AALC2404; determine which runtime contracts and shared infrastructure generalize while retaining deal-specific scripts/field definitions.
 
-## Phase 6 — Remaining deals and batch runner
-Complete mappings for the remaining seven deals and add month-specific batch orchestration.
+## Phase 6 — Remaining deals and batch execution
+Integrate remaining seven deals, per-month snapshots and batch orchestration.
 
-Acceptance criteria per phase: reproducible tests, source/field lineage, documented missing inputs, no confidential data in Git, and explicit status in progress.md.
+Acceptance criteria for each phase: accurate scope/status, automated synthetic tests where possible, source evidence and field lineage, explicit unresolved dependencies, no confidential data in public Git, updated \`docs/progress.md\`.

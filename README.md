@@ -1,26 +1,42 @@
 # ASAP Calculation Replica
 
-A **multi-deal, formula-driven Excel reconciliation project**, currently **scaffolding only**. The shared Python package will eventually reproduce deal-specific ASAP periodic calculations with native Microsoft Excel formulas, then reconcile against SQL-exported ASAP values.
+A multi-deal project for **semantically justified** ASAP periodic calculation reconstruction using **native Excel formulas** and independent SQL reconciliation.
 
-> **Security:** This repository was public when initialized. Do **not** commit proprietary ASAP scripts, loan-level CSV data, SQL benchmark extracts, payment inputs, credentials, or workbooks. Deal IDs are included only as directory identifiers. Before ever publishing real deal scripts or client data, obtain employer authorization and verify repository visibility and policies. Git ignore rules are not a substitute for access controls.
+> **Current status:** repository scaffolding and a conservative ASAP runtime **contract/coverage metadata layer** are present. No real ASAP deal-script analysis, Excel formula engine, or SQL reconciliation is implemented. Original ASAP/IronPython scripts cannot be assumed executable outside ASAP.
 
-## Layout
-- `src/asap_calc_replica/`: future shared CSV, AST/dependency analysis, formula generation, Excel COM and reconciliation implementations
-- `deals/{deal_id}/`: deal-specific configuration, original source scripts **stored locally only**, and private field/runtime mappings
-- `deals/_template/`: reusable safe example configuration and mappings
-- `runs/{deal_id}/{YYYY-MM}/`: local inputs, SQL benchmark, Excel output, reports (ignored by Git)
-- `docs/`: architecture, phased plan, Excel constraints and progress
-- `tests/`: safe, synthetic tests
+> **Security:** This repository is **public**. Do not commit proprietary ASAP scripts, internal Knowledge Base content, loan-level CSV data, SQL extracts, payment inputs, credentials or output workbooks. Authorized local files live in ignored paths. Check employer/AI tooling policy before making them available to Copilot.
 
-## Supported deal directories
-AALC2201, AALC2202, AALC2401, AALC2403, AALC2404, AALC2501, AALC2502, AALC2503, AALC2601.
+## Repository layout
 
-## Getting started (Windows / VS Code)
-1. Clone the repository. Use Python 3.11+ and Microsoft Excel for Windows for eventual Excel COM execution.
-2. Create a virtual environment and install `pip install -e ".[dev]"`.
-3. Put each original periodic script in `deals/<DEAL>/asap_scripts/` **locally**. Files there are ignored by Git.
-4. Keep deal-run inputs under `runs/<DEAL>/<YYYY-MM>/inputs/` and SQL results under `benchmark/`.
-5. Review `AGENTS.md` and `docs/implementation_plan.md` before directing Copilot to start Phase 1.
-6. The calculation CLI and workbook generation **are not implemented yet**. Do not interpret directories/placeholders as working features.
+- \`src/asap_calc_replica/runtime/\`: documented host-object contracts, explicit dependency registry, collection semantics gates and period context (**not an ASAP emulator**).
+- \`src/asap_calc_replica/analysis/\`: future script/dependency analyzers and a **metadata-only** A/B/C/D semantic readiness assessor.
+- \`src/asap_calc_replica/calculation/\`, \`excel/\`, \`reconciliation/\`: planned shared calculation/formula, COM and SQL comparison engines.
+- \`deals/<deal_id>/\`: deal configuration, original scripts (local-only), runtime/field mapping (local-only).
+- \`knowledge/README.md\`: local-only ASAP Knowledge Base intake guidance. Put authorized KB files under \`knowledge/asap/\` (Git-ignored), optionally linking approved ASAP-Agent knowledge locally.
+- \`runs/<deal_id>/<YYYY-MM>/\`: ignored source inputs, SQL benchmark, Excel output and per-field diagnostic reports.
+- \`docs/\`: architecture, runtime gaps, coverage, Excel requirements, phased implementation and progress.
+- \`tests/\`: synthetic scaffold and runtime contract tests.
 
-`python scripts/setup_deals.py --deal AALC2201 --month 2026-09` creates local run folders; `python -m pytest` runs only scaffold tests.
+Initial deals: AALC2201, AALC2202, AALC2401, AALC2403, AALC2404, AALC2501, AALC2502, AALC2503, AALC2601.
+
+## Local setup (Windows + Excel)
+
+1. Clone the repository and open in VS Code. Use Python 3.11+.
+2. Create a virtual environment; install \`pip install -e ".[dev]"\`.
+3. Put original ASAP source files in \`deals/<DEAL>/asap_scripts/\` locally. Do not commit them.
+4. Put only authorized KB files under \`knowledge/asap/\` locally. Runtime contracts need source evidence, not guesses.
+5. Keep monthly CSV, period, payment_inputs, historical snapshots and SQL benchmark under \`runs/<DEAL>/<YYYY-MM>/\`.
+6. Run \`python scripts/setup_deals.py --deal AALC2201 --month 2026-09\` to create directories, and \`python -m pytest\` for synthetic unit tests. No real calculation commands exist yet.
+7. Review \`AGENTS.md\` and **Phase 1** of \`docs/implementation_plan.md\` before directing Copilot to analyze AALC2201.
+
+## Formula and output constraints (once implemented)
+
+Exact INDEX/MATCH, staged asset/transaction/portfolio calculations, local default Windows Excel workbook through COM, no adjusted column widths or decoration, Short Date for dates, Comma Style for money, General otherwise. Comparison has identity columns, Excel, ASAP SQL, Difference = Excel - ASAP SQL. SQL benchmark outputs are never formula inputs.
+
+## Read next
+
+- \`docs/architecture.md\`: design boundaries.
+- \`docs/knowledge_base_integration.md\`: evidence and privacy requirements.
+- \`docs/runtime_dependency_inventory.md\`: runtime inventory schema.
+- \`docs/calculation_coverage.md\`: A/B/C/D assessment.
+- \`docs/implementation_plan.md\`: phased roadmap.

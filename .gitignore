@@ -1,5 +1,6 @@
 # Confidential inputs, source scripts and outputs
 runs/
+knowledge/asap/
 deals/*/asap_scripts/*
 !deals/*/asap_scripts/.gitkeep
 !deals/_template/asap_scripts/.gitkeep
