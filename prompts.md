@@ -1,215 +1,208 @@
 
-# ASAP SQL Remap — Targeted COM Audit Optimization
+# ASAP-SQL-Remap — Fix Comparison FindNext Bottleneck
 
-Continue the existing reusable XLSB migration project.
+Continue the existing project.
 
-We now have real AALC2201 profiling evidence.
+Latest real-workbook telemetry establishes that:
 
-CURRENT MEASUREMENTS:
+1. Worksheet enumeration performance improved.
+2. Repeated UsedRange retrieval was reduced.
+3. Diagnostic-only formula counting was removed.
+4. 28 unit tests pass.
+5. The current audit still has not completed.
+6. The current bottleneck is the Comparison
+   worksheet's FindNext("ASAP_SQL") loop.
 
-- Total elapsed: approximately 568.59 seconds
-- Audit was still running
-- dependency.worksheet_enumeration: ~437.10s cumulative
-- dependency.other_workbook_objects: ~84.60s
-- dependency.chart_references: ~83.84s
-- dependency.conditional_formatting: ~82.19s
+Do not start another broad optimization.
 
-Individual worksheet enumeration:
-- Config: ~53.20s
-- AggregateAudit: ~47.32s
-- Diagnostics: ~47.30s
+PRIMARY OBJECTIVE:
 
-Individual expensive calls:
-- Diagnostics worksheet enumeration: ~29.76s
-- Comparison worksheet enumeration: ~29.46s
+Fix the Comparison FindNext bottleneck and complete
+one real AALC2201 dependency audit.
 
-No ASAP_SQL matches have yet been observed in the
-incomplete audit.
+## 1. Identify the Exact FindNext Behavior
 
-The current unit tests pass.
+Inspect the existing formula discovery implementation.
 
-OBJECTIVE:
+For the Comparison worksheet, log:
 
-Eliminate excessive Excel COM calls and repeated
-worksheet/object traversal without weakening
-dependency detection or financial validation.
+- UsedRange address and dimensions
+- Initial Find result
+- First match address
+- Current match address
+- FindNext iteration count
+- Time spent in each FindNext call
+- Total FindNext elapsed time
+- Number of unique addresses found
+- Whether the search wrapped to the first address
 
-## 1. Optimize Worksheet Enumeration
+Log before and after the actual COM calls.
 
-Inspect the entire worksheet enumeration path.
+Determine whether the problem is:
 
-Determine:
-- How often each worksheet is enumerated
-- How often UsedRange is requested
-- Whether formula counts cause full range scans
-- Whether each dependency category independently
-  traverses the same expensive Excel objects
-- Whether COM collections are repeatedly materialized
+A. Excessive legitimate matches
+B. Incorrect FindNext wraparound handling
+C. Repeated visits to the same cells
+D. One or more unusually slow COM calls
+E. Oversized or corrupted UsedRange
+F. Another verified cause
 
-Acquire and reuse worksheet references and UsedRange
-where safe within the same scan phase.
+Do not assume an infinite loop without evidence.
 
-Avoid redundant COM requests.
+## 2. Implement Bounded Bulk Formula Discovery
 
-Do not cache data across workbook mutations or
-refresh events if doing so could produce stale results.
+Evaluate replacing the expensive FindNext loop with
+chunked Range.Formula2 reads.
 
-## 2. Remove Expensive Diagnostic-Only Calls
+Requirements:
 
-Identify calls such as:
+- Read formulas in bounded rectangular chunks.
+- Avoid individual COM calls for every cell.
+- Keep chunk size configurable.
+- Start with approximately 5,000 cells per chunk.
+- Extract formula strings in Python memory.
+- Search for ASAP_SQL references.
+- Retain exact worksheet and cell addresses.
+- Preserve original formula text for subsequent rewriting.
+- Include hidden rows, columns, and worksheets.
+- Do not skip areas based only on visible values.
 
-    UsedRange.SpecialCells(xlCellTypeFormulas).Count
+Use actual UsedRange boundaries.
 
-If they exist only to calculate progress statistics,
-remove them from the hot path.
+Handle single-cell, single-row, and 2D COM return
+shapes correctly.
 
-Do not enumerate every formula merely to report
-the number of formulas examined.
+Check that a formula begins with "=" before
+treating it as a formula dependency.
 
-Do not compromise mandatory dependency coverage.
+Detect both direct references and unsupported
+indirect references.
 
-Counts that are expensive to obtain should be
-reported as unavailable or estimated, clearly labeled.
+Do NOT write bulk Formula2 arrays back to Excel.
 
-## 3. Optimize Formula Discovery
+Only individually rewrite formulas that have been
+confirmed safe to migrate.
 
-Use Excel-native Range.Find / FindNext for:
+## 3. Handle Large or Sparse UsedRanges
 
-    ASAP_SQL
+Inspect whether Comparison has an inflated UsedRange
+because of formatting or historical data.
 
-Search formulas, not just displayed values.
+Do not assume all UsedRange cells contain formulas.
+
+Avoid massive single-call Formula2 extraction.
+
+If the range is unusually large:
+
+- Use bounded chunks.
+- Minimize COM calls.
+- Preserve exhaustive coverage.
+- Report actual cell count and chunk count.
+- Fail safely if exhaustive scanning is impossible.
+
+Do not silently skip large worksheets.
+
+## 4. Correct FindNext Behavior Where Retained
+
+If FindNext remains in any supported code path:
+
+- Save the first match address.
+- Explicitly handle wraparound.
+- Detect repeated addresses.
+- Track iteration count.
+- Record per-call duration.
+- Bound iteration count using a justified limit.
+- Fail closed rather than returning partial results.
 
 Use explicit Find parameters.
 
-Handle first-address wraparound correctly.
+Do not remove the existing dependency checks.
 
-Collect only matching cell addresses and formulas
-needed for the source migration.
+## 5. Prevent Incomplete Audit Results
 
-Avoid per-cell COM access across unrelated formulas.
+Never interpret:
 
-Preserve detection for quoted and unquoted references.
+    ASAP_SQL matches = 0
 
-Preserve checks for unsupported and dynamic formulas.
+as a final result unless all relevant worksheets
+and workbook objects were fully inspected.
 
-Do not interpret zero observed matches before scan
-completion as evidence of zero dependencies.
+Reports must distinguish:
 
-## 4. Optimize Workbook Object Auditing
+    COMPLETED
+    INCOMPLETE
+    TIMEOUT
+    FAILED
 
-Inspect these categories independently:
+Only COMPLETED may establish the final number
+of dependencies.
 
-- Defined names
-- Conditional formatting
-- Data validation
-- Chart references
-- Power Query
-- Workbook connections
-- Other relevant objects
+## 6. Test Both Discovery Methods
 
-Avoid repeated collection traversal where possible.
+Create controlled Excel workbooks containing:
 
-Use collection-level inspection instead of per-cell
-inspection where correctness permits.
+- SUMIFS references
+- COUNTIFS references
+- INDEX/MATCH references
+- Quoted ASAP_SQL references
+- Multiple references in the same formula
+- Formulas containing INDIRECT
+- No-match worksheets
+- Hidden worksheets
+- Large formula blocks
+- Sparse UsedRanges
+- Repeated FindNext matches
 
-Do not assume that inspecting the first rule in a
-range represents all rules.
+Compare the old and optimized discovery results.
 
-Do not skip hidden worksheets or unsupported objects.
+They must identify identical dependencies.
 
-If exhaustive inspection is not possible, fail closed
-and report the unresolved object.
+Unsupported cases must remain explicit blockers.
 
-## 5. Measure COM Calls and Timing
+## 7. Run One Controlled Real Audit
 
-Before and after each category, record:
+First verify no previous audit worker is active.
 
-- Number of COM operations where measurable
-- Per-worksheet elapsed time
-- Category elapsed time
-- Cumulative elapsed time
-- Formula matches
-- Unresolved dependencies
+Then execute:
 
-Maintain real-time flushed checkpoints.
+python tools/remap_proof.py --deal AALC2201 --audit-only --com-timeout 1200
 
-Clearly distinguish exclusive phase durations
-from cumulative elapsed durations.
+Record checkpoints to persistent local files.
 
-Do not double-count nested timing categories.
+Do not terminate a healthy run prematurely.
 
-## 6. Strict Preservation
+If the optimized scan fails, identify the exact
+remaining operation.
 
-Do not change:
+Do not claim success based only on unit tests.
 
-- Formula remapping semantics
-- SQL table header mapping
-- Financial calculations
-- Sensitivity label handling
-- Workbook versioning
-- Excel save format
-- Worker isolation
-- Original file protection
-- Existing failure handling
+## 8. Required Final Evidence
 
-Do not reduce verification coverage solely
-to improve speed.
+Provide:
 
-## 7. Focused Tests
+1. Comparison worksheet UsedRange dimensions
+2. Original FindNext iteration count and timings
+3. Confirmed cause of the bottleneck
+4. New formula discovery method
+5. Number of chunks read
+6. Comparison worksheet scan duration
+7. Total AALC2201 audit duration
+8. Number of actual ASAP_SQL formula dependencies
+9. Unsupported dependencies
+10. Final audit status
 
-Add regression tests demonstrating:
+After the audit is fully completed, perform one
+full AALC2201 migration if safe.
 
-A. Cached versus uncached worksheet inspection
-   discovers the same dependencies.
+Verify:
+- Migrated formulas
+- SQL table preservation
+- Financial result equivalence
+- ASAP_SQL removal
+- Version increment
+- Persisted Internal sensitivity label
+- Final XLSB reopen
 
-B. Find/FindNext discovers every matching formula
-   in controlled workbooks.
+Never publish an unverified output.
 
-C. No-match worksheets complete correctly.
-
-D. Hidden worksheets are included.
-
-E. Defined names and workbook-object dependencies
-   remain detectable.
-
-F. Unsupported formulas still fail closed.
-
-G. Existing tests continue passing.
-
-## 8. Real Workbook Validation
-
-Do not launch a second audit concurrently with
-an existing active audit worker.
-
-After implementation, perform one controlled
-AALC2201 audit.
-
-Compare actual category timings with the
-previous measurements.
-
-If the audit completes, proceed to full migration
-only after confirming dependency coverage.
-
-If it remains slow, identify the specific
-remaining COM operation using persistent telemetry.
-
-## 9. Deliverables
-
-Report:
-
-1. Exact code paths causing repeated COM calls
-2. COM operations removed or reduced
-3. Per-sheet before/after timing comparison
-4. Total dependency scan duration
-5. ASAP_SQL formula references discovered
-6. Unresolved workbook dependencies
-7. Unit test results
-8. Actual XLSB audit result
-9. Full migration result, if completed
-
-Do not claim optimization success solely because
-unit tests pass.
-
-Actual workbook timing evidence is required.
-
-Implement this targeted optimization now.
+Execute the targeted fix and validation.
