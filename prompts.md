@@ -1,127 +1,220 @@
-这次已经非常接近首次成功迁移了。AALC2201 的完整 Audit 已经 PASS，现在唯一确认的阻塞原因是缺少 `ASAP_INTERNAL_LABEL_ID` 环境变量。
 
-不需要重新修改 Formula Remapping 逻辑，也不需要重新优化 Dependency Scan。
+# ASAP-SQL-Remap — Complete Final Migration Validation
 
-## 一、当前执行状态
+Continue the existing project.
 
-| 项目                      | 状态              |
-| ----------------------- | --------------- |
-| Dependency Audit        | &#x20;PASS      |
-| 48,300 个依赖识别            | &#x20;完成        |
-| `Comparison!AC4` 公式支持   | &#x20;已修复       |
-| `COUNTA` 与 Defined Name | &#x20;已处理       |
-| 自动化测试                   | &#x20;33 Passed |
-| Internal Label API      | &#x20;可正常访问     |
-| Internal Label 环境变量     | &#x20;未配置       |
-| 最终 XLSB 迁移              | 尚未完成            |
+CURRENT VERIFIED STATUS:
 
-## 二、直接解决：设置已知的 Internal Label GUID
+AUDIT_PASS:
+- Dependency scan completed.
+- Existing audit evidence remains valid.
+- Approximately 48,300 ASAP_SQL dependencies identified.
+- All reported unsupported audit blockers resolved.
 
-你此前已经确认过公司的 Internal Label ID：
+MIGRATION_NOT_VERIFIED:
+- Save/reopen/persisted-label final validation
+  has not completed to PASS.
+- No successful migrated workbook may be claimed.
 
-`dd181445-6ec4-4473-9810-00785f082df0`
+PRIMARY OBJECTIVE:
 
-在当前 VS Code PowerShell Terminal 中执行：
+Identify the exact incomplete migration stage,
+fix it with minimal changes, and complete one
+fully validated AALC2201 migration.
 
-```
+Do not refactor the dependency scanner or
+formula-remapping engine without evidence
+that either is responsible for this failure.
 
-$env:ASAP_INTERNAL_LABEL_ID = "dd181445-6ec4-4473-9810-00785f082df0"
+## 1. Inspect Existing Migration Evidence
 
-Write-Host "Internal Label ID:" $env:ASAP_INTERNAL_LABEL_ID
+First read the latest:
+- Migration console log
+- Failure report
+- Worker telemetry
+- Processing history
+- Staging-file status
 
-```
+Determine the last successfully completed operation
+and the first failed, blocked, or unverified operation.
 
-随后运行：
+Distinguish:
+- Exception
+- COM hang
+- Supervisor timeout
+- Validation mismatch
+- Sensitivity label mismatch
+- Incomplete or interrupted execution
 
-```
+Do not guess the failure cause.
 
-python tools/remap_proof.py --deal AALC2201 --com-timeout 1800
+## 2. Instrument the Finalization Pipeline
 
-```
+Add persistent, flushed BEFORE/AFTER checkpoints
+to every step:
 
-这里假设你在 Repository 根目录执行，且当前 Copilot 代码仍沿用 `tools/remap_proof.py` 路径。
+1. Formula rewrite completed
+2. Financial recalculation completed
+3. Pre-save regression comparison passed
+4. ASAP_SQL removed
+5. Internal label inspected/confirmed
+6. XLSB save started
+7. XLSB save returned successfully
+8. Workbook close completed
+9. Excel worker cleanup completed
+10. Saved XLSB reopened
+11. Internal LabelId read successfully
+12. Persisted label verified
+13. Final financial regression passed
+14. Workbook structure validation passed
+15. Final output published
 
-如果你希望以后新开的 PowerShell Terminal 也能识别这个环境变量，可以使用：
+For every checkpoint capture:
+- Timestamp
+- Stage
+- Excel process ID
+- Workbook path
+- Duration
+- Exception or timeout information
 
-```
-[Environment]::SetEnvironmentVariable(
-    "ASAP_INTERNAL_LABEL_ID",
-    "dd181445-6ec4-4473-9810-00785f082df0",
-    "User"
-)
-```
+All checkpoints must survive process termination.
 
-持久化设置只对之后新开的进程生效；当前 Terminal 仍需使用第一段 `$env:` 设置。
+## 3. Investigate Save/Reopen
 
-## 三、我建议对工具做一个永久性的小改进
+Check the actual implementation for:
 
-现在你已经确认：
+- Save versus SaveAs behavior
+- XLSB FileFormat=50
+- Temporary staging-file paths
+- File locks
+- Read-only status
+- Existing destination-file collisions
+- Excel alerts and modal prompts
+- Workbook calculation state
+- Power Query/background refresh activity
+- COM object lifecycle
+- Save completion before reopen
 
-- 原始 Proof 自带 `Internal` Label。
-- `GetLabel()` 可以正常返回。
-- 实际 LabelId 与预期一致。
+Do not replace the Excel-native XLSB workflow.
 
-那么在迁移时，程序应当优先保留并验证原文件已有的 Internal Label，而不是不论情况如何都要求重新配置环境变量。
+Do not change workbook connections or calculation
+semantics merely to make saving faster.
 
-建议给 Copilot 这段简短 Prompt：
+## 4. Verify Internal Label Persistence
 
-Update the existing Sensitivity Label handling in `remap_proof.py`.
+Expected label: Internal
 
-The AALC2201 audit is now PASS, but migration is blocked because `ASAP_INTERNAL_LABEL_ID` is not configured.
+Expected LabelId:
+dd181445-6ec4-4473-9810-00785f082df0
 
-The original workbook already has the correct Internal sensitivity label, previously verified as:
+If the source workbook already carries the
+correct authorized Internal label:
 
-`dd181445-6ec4-4473-9810-00785f082df0`
+- Preserve it.
+- Avoid unnecessary reassignment.
 
-Implement the following minimal change:
+If the source is unlabeled:
 
-1. Inspect the original workbook's sensitivity label through `GetLabel()`.
-2. If the existing LabelId matches the approved Internal LabelId, preserve it without unnecessary reassignment.
-3. Do not require label-assignment environment variables when no label assignment is necessary.
-4. If the workbook is unlabeled, require authorized configuration before applying Internal.
-5. If the workbook has a different label, fail closed rather than overwrite or downgrade it.
-6. After saving and reopening the XLSB, verify that the persisted LabelId still matches Internal.
-7. Keep the approved expected LabelId in an appropriate local configuration, without unnecessarily publishing tenant-specific configuration in the public repository.
-8. Preserve all other migration functionality and existing safeguards.
+- Apply Internal through the approved Office API
+  using authorized configuration.
 
-Do not modify formula mapping, dependency scanning, versioning, financial calculations, or workbook-preservation logic.
+If the source has a different label:
 
-Add focused regression tests, then execute the actual AALC2201 migration using the existing PASS audit evidence where it is still valid.
+- Fail closed.
+- Do not overwrite or downgrade it.
 
-Report the final filename, formula migration count, financial comparison result, workbook preservation result, and persisted sensitivity label.
+After saving, close the workbook and reopen
+the staged XLSB.
 
-Do not claim success until the final versioned XLSB has been saved, reopened, and fully validated.
+Use a fresh isolated Excel instance if necessary
+to verify persisted metadata independently.
 
-## 四、这轮最应该关注什么？
+Call GetLabel() on the reopened workbook.
 
-下一次成功执行后，应该看到类似以下结果：
+Require exact LabelId equality.
 
-AALC2201 Migration
+Do not treat a successful pre-save GetLabel()
+as proof that the saved file retained the label.
 
-待验证
+Do not bypass the label check or manipulate
+Office protection metadata directly.
 
-Dependency Audit
+## 5. Reuse Existing Audit Safely
 
-PASS
+Do not rerun the 20-minute audit unnecessarily.
 
-Formula Remapping
+Reuse the existing AUDIT_PASS only when:
 
-Pending
+- Source workbook SHA-256 is unchanged.
+- Source table schema is unchanged.
+- Relevant mapping and dependency rules are unchanged.
+- The existing report proves complete coverage.
 
-Financial Tie-out
+If these conditions do not hold, rerun the
+necessary validation.
 
-Pending
+Do not reuse partial migration results from
+a failed staging file without verification.
 
-XLSB Save / Reopen
+## 6. Final Publication Gate
 
-Pending
+Publish the version-incremented XLSB only after:
 
-Sensitivity Label
+- All intended formulas migrated
+- No unresolved ASAP_SQL dependencies
+- ASAP_SQL worksheet removed
+- Query!tblASAP_SQL_DB preserved
+- Financial results equivalent
+- Unrelated formulas preserved
+- XLSB saved and reopened
+- Internal label persisted and verified
+- Workbook structure validation passed
 
-Internal — Pending
+Until every mandatory check passes:
 
-Version Increment
+    MIGRATION_NOT_VERIFIED or MIGRATION_FAIL
 
-Pending
+Do not publish an unverified staging workbook.
 
-我的建议：先直接设置环境变量并尝试完整迁移。 这是当前最短的解决路径。上述永久性改进可以随后实施，以免你每次处理不同 Deal 都要重复配置同一个 Internal Label。
+Never overwrite the original input.
+
+## 7. Execution
+
+Use the existing AALC2201 input.
+
+Run a single controlled migration with
+the existing isolated-worker supervisor.
+
+Keep granular telemetry throughout execution.
+
+Do not prematurely terminate a healthy worker.
+
+If execution fails, retain its final checkpoint,
+failure report, and all useful diagnostics.
+
+Do not claim success merely because unit tests pass.
+
+## 8. Required Final Report
+
+Report exactly:
+
+- Audit status
+- Source workbook SHA-256
+- Formula rewrite status
+- Migrated formula count
+- Financial comparison status
+- XLSB save status
+- Close status
+- Reopen status
+- Original sensitivity label
+- Persisted sensitivity label
+- Final workbook structure status
+- Final output filename and path
+- Final publication status
+- Overall MIGRATION_PASS / MIGRATION_FAIL
+
+If the run fails, identify the exact failed stage
+and the next minimal corrective action.
+
+Execute the investigation and complete the
+migration if the evidence permits.
