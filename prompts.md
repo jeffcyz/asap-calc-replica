@@ -1,192 +1,203 @@
 
-# ASAP SQL Remap — Sensitivity Label COM Blocking Fix
+# ASAP SQL Remap — Dependency Scan Performance Optimization
 
-This is a continuation of the existing ASAP-SQL-Remap project.
+Continue the existing ASAP-SQL-Remap project.
 
-The reusable migration engine is implemented.
-All 14 unit tests pass.
+The sensitivity-label issue has been resolved.
 
-However, real XLSB migration is blocked because:
+Verified evidence:
+- Excel COM initialization succeeds.
+- GetLabel() succeeds in hidden Excel.
+- Original proof already has the correct Internal label.
+- All 23 unit tests pass.
 
-    Workbook.SensitivityLabel.GetLabel()
+The new blocker is:
 
-does not return when called through Excel COM.
+    Migration.ASAP_SQL.dependencies
 
-The workbook opens successfully before this call.
+This stage exceeded the 300-second supervisor timeout.
 
-Your task is to isolate and resolve this blocking issue
-without modifying the existing financial remapping logic.
+Do not assume that merely increasing the timeout
+will solve the problem.
 
-## 1. Strict Scope
+## PRIMARY OBJECTIVE
 
-Do not refactor:
-- Formula mapping
-- Column mapping
-- Version management
-- Workbook comparison
-- Financial regression checks
-- Repository architecture
+Optimize dependency discovery and workbook inspection
+for large XLSB proof models.
 
-Focus on sensitivity-label handling and its Excel
-automation lifecycle.
+Preserve all existing financial and migration logic.
 
-Do not disable or bypass corporate protection policies.
+Do not change working sensitivity-label handling.
 
-## 2. Diagnose the Actual COM Blocking Point
+## 1. Profile Dependency Discovery
 
-Inspect the current sensitivity-label implementation.
+Instrument the dependency scanner with:
 
-Identify:
-- Whether Excel is started using DispatchEx
-- Whether Application.Visible is False
-- Whether DisplayAlerts is disabled
-- Whether Excel is running in an interactive user session
-- The signed-in Office identity and policy availability
-- The exact API call where execution stops
-- Whether the workbook already carries a label
-- Whether a modal Office dialog is blocking automation
+- Worksheet name
+- UsedRange dimensions
+- Number of detected formula cells
+- Number of matching ASAP_SQL formulas
+- COM call timing
+- Elapsed time by worksheet
+- Elapsed time by dependency category
 
-Add timestamped logging immediately before and after
-each COM operation.
+Separately measure:
 
-Distinguish a hanging API from an exception.
+A. Cell formulas
+B. Defined names
+C. Conditional formatting
+D. Data validation
+E. Chart references
+F. Power Query
+G. Workbook connections
+H. Other workbook objects
 
-Do not assume that GetLabel hanging proves an
-authentication failure.
+Record progress during execution.
 
-## 3. Add an Independent Label Diagnostic
+Determine the actual bottleneck before optimizing.
 
-Create a diagnostic entry point:
+## 2. Eliminate Per-Cell COM Formula Scanning
 
-    python tools/remap_proof.py --diagnose-label
+Do not read every formula cell individually merely
+to discover references to ASAP_SQL.
 
-This must:
+Prefer Excel-native Range.Find / FindNext.
 
-1. Start Excel in an isolated process.
-2. Run under the current authorized Windows user.
-3. Test sensitivity-label initialization.
-4. Test GetLabel on an appropriate disposable workbook.
-5. Test GetLabel on a private copy of a supplied proof.
-6. Record the exact successful and failing stages.
-7. Exit with a bounded timeout and actionable diagnosis.
+Search for:
 
-Use visible Excel when diagnosing interactive
-authentication or policy prompts.
+    ASAP_SQL
 
-Never kill or modify an existing user-owned Excel session.
+with explicit settings:
 
-Never report a successful label operation without
-actual API confirmation.
+    LookIn = xlFormulas
+    LookAt = xlPart
+    SearchOrder = xlByRows
+    SearchDirection = xlNext
+    MatchCase = False
+    SearchFormat = False
 
-## 4. Prevent Indefinite Hangs
+Handle FindNext wraparound correctly.
 
-Run potentially blocking Excel COM operations in an
-isolated worker process.
+Inspect and validate matching formulas before migration.
 
-Do not use a Python thread timeout as if it could
-cancel an already-blocked COM call.
+Use targeted matching so unrelated SQL strings
+or ordinary text are not treated as sheet references.
 
-Use a supervisor process with a configurable timeout.
+Where necessary, use bulk Formula/Formula2 extraction
+in bounded chunks instead of one COM call per cell.
 
-Create and use COM objects only inside the owning
-worker process/thread.
+Preserve dynamic-array and implicit-intersection
+semantics. Do not silently convert Formula2 to Formula
+or vice versa.
 
-If a timeout occurs:
+## 3. Optimize Workbook Object Auditing
 
-- Capture the blocked operation.
-- Capture the worker-owned Excel process identity.
-- Clean up only processes created by this run.
-- Preserve the original input workbook.
-- Do not publish output.
-- Produce a failure report.
-- Return control to the command line.
+Avoid scanning every cell individually for:
 
-Do not terminate unrelated Excel processes.
+- Conditional formatting
+- Data validation
+- Other workbook metadata
 
-## 5. Preserve Internal Label Requirements
+Inspect rules and objects at the appropriate
+worksheet/workbook collection level.
 
-The final workbook must carry the authorized
-Internal sensitivity label.
+Preserve coverage of indirect references.
 
-Expected LabelId:
+If an object cannot be inspected reliably,
+report an unresolved dependency instead of
+assuming it is safe.
 
-    dd181445-6ec4-4473-9810-00785f082df0
+Do not disable existing safety checks for speed.
 
-Verify this ID is valid under the current
-organization's published labeling policy.
+## 4. Optimize Snapshot and Comparison
 
-Use Excel-native sensitivity-label APIs.
+Inspect the existing baseline snapshot implementation.
 
-If the source already has another label,
-do not overwrite or downgrade it.
+Avoid unnecessary per-cell COM calls.
 
-If the label is absent, apply Internal only through
-the organization's authorized mechanism.
+Use efficient bounded bulk reads where safe.
 
-Do not invent SiteId or authentication metadata.
+Preserve:
+- Exact formula comparison
+- Financial-result comparison
+- Unchanged-value verification
+- Workbook structure verification
+- Formatting and connection preservation checks
 
-Do not bypass policy enforcement.
+Do not weaken financial regression requirements.
 
-After saving:
-- Reopen the XLSB.
-- Read the persisted label.
-- Confirm the exact Internal LabelId.
+Any optimized comparison must produce the same
+PASS/FAIL conclusions as the existing implementation.
 
-## 6. Separate Label Diagnosis from Formula Diagnosis
+## 5. Keep Separate Execution Stages
 
-Add a safe audit-only command:
+Expose timing for:
 
-    python tools/remap_proof.py --audit-only --deal AALC2201
+1. Open workbook
+2. Inspect sensitivity label
+3. Locate SQL table
+4. Discover dependencies
+5. Verify column mappings
+6. Verify SQL source equivalence
+7. Capture baseline
+8. Rewrite formulas
+9. Recalculate and compare
+10. Delete ASAP_SQL
+11. Save XLSB
+12. Reopen and verify
 
-It should inspect:
+This will help distinguish slow Excel calculation
+from slow dependency discovery.
 
-- ASAP_SQL dependencies
-- tblASAP_SQL_DB headers
-- Column mappings
-- Unsupported formula patterns
-- Source data equivalence
+## 6. Preserve Existing Safety Requirements
 
-It must not:
+Do not:
+- Modify original XLSB
+- Skip sensitivity-label validation
+- Disable financial regression
+- Hardcode financial results
+- Skip unresolved dependency checks
+- Remove necessary workbook objects
+- Publish incomplete output
+- Kill user-owned Excel processes
 
-- Modify source workbooks
-- Publish a migrated workbook
-- Apply or change sensitivity labels
-- Claim migration success
+Keep the existing isolated-worker timeout protection.
 
-This allows debugging the SQL remapping independently
-of Office sensitivity-label initialization.
+## 7. Validation
 
-## 7. Add Focused Regression Tests
+First run the optimized audit-only mode
+against AALC2201.
 
-Test:
+Record actual timings and discovered dependencies.
 
-- Label COM timeout
-- Visible versus hidden Excel diagnostic handling
-- Failure report creation
-- Worker cleanup
-- Protection of existing Excel sessions
-- Existing label conflict
-- Label persistence verification
-- No output publication after label failure
-- Unchanged original XLSB
-- Audit-only mode
+Compare the optimized scanner against the existing
+scanner on small controlled test workbooks to verify
+that no dependencies are missed.
 
-Preserve all existing tests.
+After the audit passes, attempt a full migration.
+
+Do not label the migration PASS until:
+- All relevant dependencies have been remapped
+- ASAP_SQL is removed
+- Query table remains intact
+- Financial results match
+- Internal label is verified after reopening
+- Versioned XLSB is successfully published
 
 ## 8. Deliverables
 
 Provide:
 
-1. Root-cause analysis with actual diagnostic evidence.
-2. Minimal code changes.
-3. Updated test results.
-4. Label diagnostic command and logs.
-5. Safe timeout behavior.
-6. SQL audit-only capability.
-7. Instructions for running the next real XLSB test.
+1. Actual cause of the timeout
+2. Before/after dependency scan timings
+3. Number of detected formulas
+4. Number of ASAP_SQL-dependent formulas
+5. Optimization changes
+6. Regression test results
+7. Actual AALC2201 migration results
+8. Any remaining blockers
 
-Do not claim a successful migration until an actual
-XLSB has been fully migrated, saved, reopened, and
-validated with the Internal label.
+Do not stop after implementation.
+Run the real audit and full migration if possible.
 
-Execute the troubleshooting and implement the fix.
+Execute now.
