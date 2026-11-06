@@ -1,208 +1,281 @@
 
-# ASAP-SQL-Remap — Fix Comparison FindNext Bottleneck
+# ASAP SQL Remap — Resolve Final Audit Blocker and Complete First Migration
 
-Continue the existing project.
+Continue the existing ASAP-SQL-Remap project.
 
-Latest real-workbook telemetry establishes that:
+The latest real AALC2201 dependency audit has completed.
 
-1. Worksheet enumeration performance improved.
-2. Repeated UsedRange retrieval was reduced.
-3. Diagnostic-only formula counting was removed.
-4. 28 unit tests pass.
-5. The current audit still has not completed.
-6. The current bottleneck is the Comparison
-   worksheet's FindNext("ASAP_SQL") loop.
+Verified results:
 
-Do not start another broad optimization.
+- Dependency discovery completed.
+- Total reported dependencies: 48,301.
+- Dependency scan duration: 1229.920865 seconds.
+- Comparison UsedRange: A1:UF279.
+- Comparison formula discovery: 226.669034 seconds.
+- Chunked Formula2 scanning is operational.
+- The previous FindNext bottleneck was eliminated.
+- Current audit result: AUDIT_FAIL.
+- Only one blocking condition was reported:
+
+    Comparison!$AC$4
+
+    Unsupported finite or direct source reference.
+
+The original workbook remains unchanged.
 
 PRIMARY OBJECTIVE:
 
-Fix the Comparison FindNext bottleneck and complete
-one real AALC2201 dependency audit.
+Resolve the remaining unsupported reference safely,
+achieve AUDIT_PASS, and execute the first complete
+AALC2201 XLSB migration.
 
-## 1. Identify the Exact FindNext Behavior
+Do not perform another broad refactoring.
 
-Inspect the existing formula discovery implementation.
+==================================================
+1. INSPECT THE EXACT BLOCKING FORMULA
+==================================================
 
-For the Comparison worksheet, log:
+Read the actual formula at:
 
-- UsedRange address and dimensions
-- Initial Find result
-- First match address
-- Current match address
-- FindNext iteration count
-- Time spent in each FindNext call
-- Total FindNext elapsed time
-- Number of unique addresses found
-- Whether the search wrapped to the first address
+    Comparison!$AC$4
 
-Log before and after the actual COM calls.
+Report:
 
-Determine whether the problem is:
+- Complete original formula
+- Referenced ASAP_SQL cells/ranges
+- Absolute and relative reference semantics
+- Original calculated result
+- Whether it references a header, data row,
+  control value, or summary row
+- Whether the referenced source data exists
+  in tblASAP_SQL_DB
+- Whether equivalent behavior can be guaranteed
 
-A. Excessive legitimate matches
-B. Incorrect FindNext wraparound handling
-C. Repeated visits to the same cells
-D. One or more unusually slow COM calls
-E. Oversized or corrupted UsedRange
-F. Another verified cause
+Do not assume the reference is a normal data cell.
 
-Do not assume an infinite loop without evidence.
+==================================================
+2. IMPLEMENT SAFE FINITE/DIRECT REFERENCES
+==================================================
 
-## 2. Implement Bounded Bulk Formula Discovery
+Extend formula migration only as required.
 
-Evaluate replacing the expensive FindNext loop with
-chunked Range.Formula2 reads.
+Potential patterns include:
+
+    ASAP_SQL!$H$15
+    ASAP_SQL!H15
+    ASAP_SQL!$H$15:$H$25
+
+These are examples, not confirmed workbook formulas.
+
+Support only patterns for which a verified
+semantic transformation is available.
+
+For direct data-row references, consider:
+
+    INDEX(tblASAP_SQL_DB[VerifiedHeader], row_index)
+
+ONLY when all required conditions are proven:
+
+- Source row mapping is unambiguous.
+- Data rows correspond exactly.
+- Row ordering semantics are preserved.
+- Refresh behavior remains equivalent.
+- Relative/absolute reference behavior remains valid.
+- No hidden filters or additional SQL rows
+  change the intended result.
+
+If these conditions cannot be proven, use another
+verified semantic mapping or fail closed.
+
+Do not create a positional INDEX mapping merely
+to eliminate an audit blocker.
+
+Do not introduce hardcoded financial values.
+
+==================================================
+3. HANDLE SPECIAL REFERENCE TYPES
+==================================================
+
+If the formula references:
+
+A. A table header:
+   Use the verified structured header reference
+   only when semantically equivalent.
+
+B. A source data cell:
+   Use verified row/field lookup semantics.
+
+C. A finite aggregate range:
+   Preserve exact inclusion, aggregation,
+   and row-boundary behavior.
+
+D. A source summary/control cell:
+   Determine whether an equivalent value exists
+   in the SQL table without inventing a mapping.
+
+E. A copied relative reference:
+   Preserve intended fill/copy behavior,
+   not merely the current displayed result.
+
+If exact equivalence is impossible,
+stop and identify the specific limitation.
+
+==================================================
+4. VALIDATE THE 48,301 DEPENDENCIES
+==================================================
+
+Distinguish:
+
+- Number of unique formula cells
+- Number of ASAP_SQL reference occurrences
+- Number of source columns referenced
+- Number of supported formula patterns
+- Number of unsupported formula patterns
+
+Do not assume 48,301 represents unique formulas.
+
+Ensure that all original dependencies have been
+identified and accounted for.
+
+No dependency may be silently skipped.
+
+Preserve the existing completed audit evidence.
+
+==================================================
+5. MINIMAL IMPLEMENTATION CHANGES
+==================================================
+
+Modify only the necessary formula parsing,
+rewriting, mapping, and validation components.
+
+Do not change:
+
+- Existing SUMIFS migration behavior
+- Existing COUNTIFS migration behavior
+- Existing lookup behavior
+- Excel COM lifecycle
+- Sensitivity label handling
+- Versioning
+- Workbook preservation rules
+- Worker isolation
+- Fail-closed safeguards
+
+Add focused tests for the newly supported reference
+pattern and its edge cases.
+
+==================================================
+6. RERUN COMPLETE AUDIT
+==================================================
+
+Execute the real AALC2201 audit.
+
+Use a supervisor timeout supported by the actual
+measured duration and retain persistent checkpoints.
+
+Confirm:
+
+    AUDIT_PASS
+
+Required evidence:
+
+- Total dependency count
+- Unsupported dependency count = 0
+- All required SQL headers verified
+- Data equivalence verified
+- All workbook-object checks passed
+
+Do not attempt final migration if audit fails.
+
+==================================================
+7. EXECUTE FIRST FULL MIGRATION
+==================================================
+
+After AUDIT_PASS, perform one real AALC2201
+migration using the existing versioned input.
 
 Requirements:
 
-- Read formulas in bounded rectangular chunks.
-- Avoid individual COM calls for every cell.
-- Keep chunk size configurable.
-- Start with approximately 5,000 cells per chunk.
-- Extract formula strings in Python memory.
-- Search for ASAP_SQL references.
-- Retain exact worksheet and cell addresses.
-- Preserve original formula text for subsequent rewriting.
-- Include hidden rows, columns, and worksheets.
-- Do not skip areas based only on visible values.
+1. Preserve original XLSB.
+2. Rewrite all supported ASAP_SQL references.
+3. Preserve unrelated formulas.
+4. Preserve financial results.
+5. Delete ASAP_SQL only after dependency validation.
+6. Preserve Query and tblASAP_SQL_DB.
+7. Preserve workbook formatting and structure.
+8. Preserve or verify the Internal sensitivity label.
+9. Save as the next appropriate version.
+10. Reopen and validate the saved XLSB.
 
-Use actual UsedRange boundaries.
+Do not publish a partially verified workbook.
 
-Handle single-cell, single-row, and 2D COM return
-shapes correctly.
+==================================================
+8. LARGE-WORKBOOK PERFORMANCE
+==================================================
 
-Check that a formula begins with "=" before
-treating it as a formula dependency.
+Because approximately 48,301 dependencies were found,
+measure formula replacement and regression performance.
 
-Detect both direct references and unsupported
-indirect references.
+Avoid unnecessary one-cell-at-a-time COM reads.
 
-Do NOT write bulk Formula2 arrays back to Excel.
+Use bounded bulk reads and safe targeted writes
+where they preserve formula semantics.
 
-Only individually rewrite formulas that have been
-confirmed safe to migrate.
+Do not bulk overwrite unrelated formulas.
 
-## 3. Handle Large or Sparse UsedRanges
+Record:
 
-Inspect whether Comparison has an inflated UsedRange
-because of formatting or historical data.
+- Formula rewrite duration
+- Recalculation duration
+- Financial comparison duration
+- Workbook structure comparison duration
+- Save duration
+- Reopen duration
+- Sensitivity label verification duration
 
-Do not assume all UsedRange cells contain formulas.
+Do not weaken validation solely to improve speed.
 
-Avoid massive single-call Formula2 extraction.
-
-If the range is unusually large:
-
-- Use bounded chunks.
-- Minimize COM calls.
-- Preserve exhaustive coverage.
-- Report actual cell count and chunk count.
-- Fail safely if exhaustive scanning is impossible.
-
-Do not silently skip large worksheets.
-
-## 4. Correct FindNext Behavior Where Retained
-
-If FindNext remains in any supported code path:
-
-- Save the first match address.
-- Explicitly handle wraparound.
-- Detect repeated addresses.
-- Track iteration count.
-- Record per-call duration.
-- Bound iteration count using a justified limit.
-- Fail closed rather than returning partial results.
-
-Use explicit Find parameters.
-
-Do not remove the existing dependency checks.
-
-## 5. Prevent Incomplete Audit Results
-
-Never interpret:
-
-    ASAP_SQL matches = 0
-
-as a final result unless all relevant worksheets
-and workbook objects were fully inspected.
-
-Reports must distinguish:
-
-    COMPLETED
-    INCOMPLETE
-    TIMEOUT
-    FAILED
-
-Only COMPLETED may establish the final number
-of dependencies.
-
-## 6. Test Both Discovery Methods
-
-Create controlled Excel workbooks containing:
-
-- SUMIFS references
-- COUNTIFS references
-- INDEX/MATCH references
-- Quoted ASAP_SQL references
-- Multiple references in the same formula
-- Formulas containing INDIRECT
-- No-match worksheets
-- Hidden worksheets
-- Large formula blocks
-- Sparse UsedRanges
-- Repeated FindNext matches
-
-Compare the old and optimized discovery results.
-
-They must identify identical dependencies.
-
-Unsupported cases must remain explicit blockers.
-
-## 7. Run One Controlled Real Audit
-
-First verify no previous audit worker is active.
-
-Then execute:
-
-python tools/remap_proof.py --deal AALC2201 --audit-only --com-timeout 1200
-
-Record checkpoints to persistent local files.
-
-Do not terminate a healthy run prematurely.
-
-If the optimized scan fails, identify the exact
-remaining operation.
-
-Do not claim success based only on unit tests.
-
-## 8. Required Final Evidence
+==================================================
+9. FINAL REPORT
+==================================================
 
 Provide:
 
-1. Comparison worksheet UsedRange dimensions
-2. Original FindNext iteration count and timings
-3. Confirmed cause of the bottleneck
-4. New formula discovery method
-5. Number of chunks read
-6. Comparison worksheet scan duration
-7. Total AALC2201 audit duration
-8. Number of actual ASAP_SQL formula dependencies
-9. Unsupported dependencies
-10. Final audit status
+A. Exact original Comparison!AC4 formula.
 
-After the audit is fully completed, perform one
-full AALC2201 migration if safe.
+B. Its verified replacement formula.
 
-Verify:
-- Migrated formulas
-- SQL table preservation
-- Financial result equivalence
-- ASAP_SQL removal
-- Version increment
-- Persisted Internal sensitivity label
-- Final XLSB reopen
+C. Explanation of why the mapping is equivalent.
 
-Never publish an unverified output.
+D. Final audit status.
 
-Execute the targeted fix and validation.
+E. Number of unique affected formula cells.
+
+F. Number of reference occurrences migrated.
+
+G. Number of unsupported references remaining.
+
+H. Full migration execution time.
+
+I. Financial comparison result.
+
+J. Workbook preservation result.
+
+K. Internal label persistence result.
+
+L. Original and final versioned filenames.
+
+M. Final output path.
+
+N. Overall PASS / FAIL.
+
+If final migration fails, report the exact
+next blocker and preserve the original workbook.
+
+Do not claim success merely because unit tests pass.
+
+EXECUTION:
+
+Perform the targeted fix, run the audit, and
+attempt the first complete migration.
+
+Do not stop after describing a plan.
