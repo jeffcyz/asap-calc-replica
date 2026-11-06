@@ -1,37 +1,15 @@
-# Agent instructions: ASAP Calculation Replica
+# ASAP-SQL-Remap — AGENTS.md
 
-## Fundamental constraint
-- ASAP/IronPython source scripts are **not standalone executables** in local Python. ASAP supplies objects, collection behavior, data access, execution lifecycle and potentially hidden state. **Do not build a complete ASAP emulator.**
-- Target is **observable calculation semantic equivalence in native Excel**, not direct execution or syntax-only translation.
-- Never assume behavior from a method name or one month's matching SQL result. Unknown ASAP semantics remain unresolved until supported by authoritative evidence.
-- Use `docs/architecture.md`, `docs/knowledge_base_integration.md`, `docs/runtime_dependency_inventory.md` and `docs/calculation_coverage.md` before formula development.
+Project purpose: make safe, reproducible changes to existing XLSB workbooks; never rebuild financial proofs.
 
-## Approved phase discipline
-- Work only on the user's approved phase in `docs/implementation_plan.md`; record progress in `docs/progress.md`.
-- Phase 1 first: read full *local authorized* source and schemas; identify runtime APIs, implicit initialization, side effects, ordering, historical state and required inputs.
-- For every output field, distinguish (i) semantic gap, (ii) missing data, (iii) Excel translation gap. Report A/B/C/D readiness, with D taking priority over C.
-- The `analysis/semantic_resolver.py` is a **metadata classifier only**, not a script parser, transpiler, ASAP runtime, proof of formula correctness, or calculator.
-- Do not generate formulas for unresolved operations; no guessed defaults, zeros, implicit keys, arbitrary rounding or silent branch dropping.
-- The original scripts are read-only authority for visible business expressions; authorized KB contracts explain their host behavior. Neither replaces observed monthly input data.
-- Reuse proven runtime contracts across deals, but do not assume deal-specific formulas are equivalent. Begin with AALC2201; then test AALC2404.
-
-## Local sources
-- Deal scripts: `deals/{deal_id}/asap_scripts/` (read-only, Git-ignored).
-- Deal mappings: `deals/{deal_id}/mappings/` (private, Git-ignored).
-- ASAP KB: `knowledge/asap/` (local-only, Git-ignored), optionally approved local ASAP-Agent reference.
-- Run directories: `runs/{deal_id}/{YYYY-MM}/` are **tracked through `.gitkeep` files**; raw data, payment_inputs, period, SQL benchmarks, output workbooks and reports remain ignored.
-- Engine: `src/asap_calc_replica/`.
-
-## Excel / validation rules
-- Native formulas; exact-match INDEX/MATCH instead of XLOOKUP/VLOOKUP/XMATCH; SUMIFS permitted for aggregation.
-- Preserve transaction order if material, prior-period carryforward, mutation order, portfolio waterfall, period exceptions, date arithmetic, runtime rounding/null semantics.
-- Windows Excel COM `Workbooks.Add()` to inherit locally configured New Workbook defaults. Never modify widths/AutoFit or decorate; Short Date actual dates, built-in Comma Style money, General all else.
-- SQL benchmarks are for comparison ONLY, never substitutes for missing source values.
-- Comparison identity columns + Excel + ASAP SQL + Difference = Excel - ASAP SQL. Distinguish missing matching rows from genuine zero.
-- Never claim numeric correctness until Excel formulas are recalculated and independently reconciled for relevant branches.
-
-## Public repository security
-- Do **not** stage/push scripts, client data, actual field/rate mappings, private KB documents, screenshots, SQL results, period input records, real workbooks or credentials.
-- Preserve `.gitkeep` markers for each new run subdirectory; never force-add real run data to this public repository.
-- A .gitignore is an additional guard, not a guarantee: review `git status` and staged diff and check employer policy before using external AI tools.
-- Keep all public test examples synthetic.
+1. Treat original workbook as immutable. Never overwrite it or an existing version.
+2. Only intended workbook edits are replacement of ASAP_SQL references, removal of ASAP_SQL, and authorized application/verification of Internal label.
+3. Resolve columns using actual tblASAP_SQL_DB headers, never column positions alone.
+4. Preserve calculation criteria, matching, duplicate behavior, dates, nulls, lookup ordering, and Excel formatting.
+5. Fail closed for unsupported formulas, inconsistent data, indirect dependencies, label mismatch, or changed financial results.
+6. Support all deals with the same reusable engine; do not hardcode specific financial data or source paths.
+7. Version output names: v05->v06, v0.0.1->v0.0.2, no version->_v01.
+8. Apply Internal with Office SensitivityLabel and verify exact label GUID after reopening. Never downgrade or bypass sensitivity policy.
+9. Run on a company-approved Windows Excel desktop and report actual validation, not assumptions.
+10. This GitHub repository is PUBLIC. Never commit XLSB, confidential reports, raw deal records, tenant GUIDs, or local processing history.
+11. Keep supported migration scope explicit and test any newly supported Excel formula structures.

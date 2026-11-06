@@ -1,44 +1,39 @@
-# ASAP Calculation Replica
+# ASAP-SQL-Remap
 
-A multi-deal project for **semantically justified** ASAP periodic calculation reconstruction using **native Excel formulas** and independent SQL reconciliation.
+Reusable fail-closed XLSB migration tool for multiple ASAP deal models. This does NOT regenerate proof models or need the old calculation repository.
 
-> **Current status:** repository scaffolding and a conservative ASAP runtime **contract/coverage metadata layer** are present. No real ASAP deal-script analysis, Excel formula engine, or SQL reconciliation is implemented. Original ASAP/IronPython scripts cannot be assumed executable outside ASAP.
+## Behavior
 
-> **Security:** This repository is **public**. Do not commit proprietary ASAP scripts, internal Knowledge Base content, loan-level CSV data, SQL extracts, payment inputs, credentials or output workbooks. Authorized local files live in ignored paths. Check employer/AI tooling policy before making them available to Copilot.
+Read versioned XLSB from inbox/<DealName>/, inspect ASAP_SQL and Query!tblASAP_SQL_DB, verify mappings and strict row-data equality, rewrite supported full-column Excel formula references, remove ASAP_SQL, apply/verify the Internal label, save new versioned XLSB to output/<DealName>/, and write local reports/history. The original input is never changed.
 
-## Repository layout
+## Windows setup
 
-- `src/asap_calc_replica/runtime/`: documented host-object contracts, explicit dependency registry, collection semantics gates and period context (**not an ASAP emulator**).
-- `src/asap_calc_replica/analysis/`: future script/dependency analyzers and a **metadata-only** A/B/C/D semantic readiness assessor.
-- `src/asap_calc_replica/calculation/`, `excel/`, `reconciliation/`: planned shared calculation/formula, COM and SQL comparison engines.
-- `deals/<deal_id>/`: deal configuration, original scripts (local-only), runtime/field mapping (local-only).
-- `knowledge/README.md`: local-only ASAP Knowledge Base intake guidance. Put authorized KB files under `knowledge/asap/` (Git-ignored), optionally linking approved ASAP-Agent knowledge locally.
-- `runs/<deal_id>/<YYYY-MM>/`: **tracked folder structure** via `.gitkeep`; data inputs, SQL benchmarks, outputs and reports remain ignored.
-- `docs/`: architecture, runtime gaps, coverage, Excel requirements, phased implementation and progress.
-- `tests/`: synthetic scaffold and runtime contract tests.
+Requires Windows desktop Microsoft Excel, signed-in Microsoft 365 account with authorized Internal labeling policy, Python 3.10+, and `pip install pywin32`.
 
-Initial deals: AALC2201, AALC2202, AALC2401, AALC2403, AALC2404, AALC2501, AALC2502, AALC2503, AALC2601.
+Set approved environment variables locally: ASAP_INTERNAL_LABEL_ID and (when starting unlabeled) ASAP_INTERNAL_SITE_ID. Never commit tenant policy identifiers. A non-Internal existing label is not downgraded.
 
-## Local setup (Windows + Excel)
+Commands:
 
-1. Clone the repository and open in VS Code. Use Python 3.11+.
-2. Create a virtual environment; install `pip install -e ".[dev]"`.
-3. Put original ASAP source files in `deals/<DEAL>/asap_scripts/` locally. Do not commit them.
-4. Put only authorized KB files under `knowledge/asap/` locally. Runtime contracts need source evidence, not guesses.
-5. Keep monthly CSV, period, payment_inputs, historical snapshots and SQL benchmark under `runs/<DEAL>/<YYYY-MM>/`.
-6. All nine `2026-10` run structures are committed. For a future month use `python scripts/setup_deals.py --all --month 2026-11` or `--deal AALC2201` for one deal; `.gitkeep` markers make these directories visible in Git. `python -m pytest` runs synthetic unit tests. No real calculation commands exist yet.
-7. Review `AGENTS.md` and **Phase 1** of `docs/implementation_plan.md` before directing Copilot to analyze AALC2201.
+    python tools/remap_proof.py --deal AALC2501
+    python tools/remap_proof.py --all
+    python tools/remap_proof.py --file inbox/AALC2201/proof_before.xlsb
 
-See `docs/run_directory_layout.md` for the complete October folder layout and ignore policy.
+## Versioning examples
 
-## Formula and output constraints (once implemented)
+- proof_20261030_165600_001-v05.xlsb -> proof_20261030_165600_001-v06.xlsb
+- proof-2502_v0.0.1_release.xlsb -> proof-2502_v0.0.2_release.xlsb
+- proof_20261105_050502_601.xlsb -> proof_20261105_050502_601_v01.xlsb
 
-Exact INDEX/MATCH, staged asset/transaction/portfolio calculations, local default Windows Excel workbook through COM, no adjusted column widths or decoration, Short Date for dates, Comma Style for money, General otherwise. Comparison has identity columns, Excel, ASAP SQL, Difference = Excel - ASAP SQL. SQL benchmark outputs are never formula inputs.
+## Scope and safety
 
-## Read next
+The current implementation handles source references consisting of one complete worksheet column (e.g., ASAP_SQL!$H:$H), including SUMIFS/COUNTIFS/INDEX/MATCH expressions. It refuses finite/direct-cell ranges, INDIRECT, OFFSET, arrays, ambiguous mappings, and any detected non-cell workbook references. It requires matching headers and strictly identical row-order data across each affected source/target column; different SQL sort/grain or dates may cause a safe failure.
 
-- `docs/architecture.md`: design boundaries.
-- `docs/knowledge_base_integration.md`: evidence and privacy requirements.
-- `docs/runtime_dependency_inventory.md`: runtime inventory schema.
-- `docs/calculation_coverage.md`: A/B/C/D assessment.
-- `docs/implementation_plan.md`: phased roadmap.
+Exact header mappings can be specified per deal in config/remap_rules.json under mapping_overrides, together with a verified header_row_overrides entry. A mapping override is NOT a waiver of data equivalence. The runtime generates state/processing_history.jsonl automatically.
+
+Validation compares formula definitions, computed results, and worksheet cell values before/after native Excel recalculation; it also checks sheets, tables and the persisted label after reopening. This is not a pixel-level or binary-perfect comparison of every workbook object. Before production use, independently validate a representative proof for each deal family and examine Excel Power Query connections, formatting, and financial tie-outs.
+
+## Public repository warning
+
+This repository is PUBLIC. The XLSB names shown under inbox/ are local-only examples, not files committed to GitHub. Do not upload internal model data, generated reports, credentials, label IDs or other corporate material. Files in inbox/, output/, reports/ and state/ are gitignored except for empty .gitkeep markers.
+
+Replacing the main branch contents does NOT remove old commits from Git history. Follow company policy if a history purge is required.

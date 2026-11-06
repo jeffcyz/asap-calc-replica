@@ -1,0 +1,11 @@
+{
+  "source_worksheet": "ASAP_SQL",
+  "target_worksheet": "Query",
+  "target_table": "tblASAP_SQL_DB",
+  "label_name": "Internal",
+  "label_id_env": "ASAP_INTERNAL_LABEL_ID",
+  "label_site_id_env": "ASAP_INTERNAL_SITE_ID",
+  "strict_source_row_match": true,
+  "header_row_overrides": {},
+  "mapping_overrides": {}
+}

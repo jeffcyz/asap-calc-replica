@@ -1,1 +1,0 @@
-"""excel package — implementation pending."""

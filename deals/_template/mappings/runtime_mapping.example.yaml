@@ -1,7 +1,0 @@
-# PUBLIC SYNTHETIC TEMPLATE. Do not commit actual ASAP API mappings here.
-# Create deals/<deal>/mappings/runtime_mapping.yaml locally (Git-ignored).
-schema_version: 1
-runtime_contracts: []
-# Every real entry needs the exact ASAP symbol, kind, source evidence,
-# required inputs, documented filtering/lifecycle/side effects and a
-# reviewed Excel/SQL mapping. An undocumented API stays unresolved.
