@@ -1,203 +1,133 @@
 
-# ASAP SQL Remap — Dependency Scan Performance Optimization
+# ASAP-SQL-Remap — Audit Performance Root Cause
 
-Continue the existing ASAP-SQL-Remap project.
+Continue the existing project.
 
-The sensitivity-label issue has been resolved.
+Current evidence:
 
-Verified evidence:
-- Excel COM initialization succeeds.
-- GetLabel() succeeds in hidden Excel.
-- Original proof already has the correct Internal label.
-- All 23 unit tests pass.
+- 23 unit tests pass.
+- Python compilation passes.
+- Excel COM sensitivity-label access works.
+- Real AALC2201 audit has not completed.
+- Previous audit sessions were terminated before
+  producing end-to-end timing evidence.
 
-The new blocker is:
+PRIMARY OBJECTIVE:
 
-    Migration.ASAP_SQL.dependencies
+Identify the exact performance bottleneck of the
+real workbook dependency audit.
 
-This stage exceeded the 300-second supervisor timeout.
+Do NOT perform another broad refactoring.
 
-Do not assume that merely increasing the timeout
-will solve the problem.
+Do NOT simply increase the timeout without evidence.
 
-## PRIMARY OBJECTIVE
+## 1. Persistent Real-Time Diagnostics
 
-Optimize dependency discovery and workbook inspection
-for large XLSB proof models.
+Instrument every dependency scan stage.
 
-Preserve all existing financial and migration logic.
+Immediately write progress to a persistent local log.
 
-Do not change working sensitivity-label handling.
+Log:
 
-## 1. Profile Dependency Discovery
-
-Instrument the dependency scanner with:
-
+- Timestamp
 - Worksheet name
+- Operation name
 - UsedRange dimensions
-- Number of detected formula cells
-- Number of matching ASAP_SQL formulas
-- COM call timing
-- Elapsed time by worksheet
-- Elapsed time by dependency category
+- Number of formula cells examined
+- Number of ASAP_SQL matches found
+- Current elapsed seconds
+- Total elapsed seconds
 
-Separately measure:
+Flush logs immediately after every checkpoint.
 
-A. Cell formulas
-B. Defined names
-C. Conditional formatting
-D. Data validation
-E. Chart references
-F. Power Query
-G. Workbook connections
-H. Other workbook objects
+Do not rely exclusively on a final Markdown report.
 
-Record progress during execution.
+## 2. Detailed Scan Profiling
 
-Determine the actual bottleneck before optimizing.
+Measure independently:
 
-## 2. Eliminate Per-Cell COM Formula Scanning
+A. Worksheet enumeration
+B. Formula reference discovery
+C. Defined names
+D. Conditional formatting
+E. Data validation
+F. Charts
+G. Power Query definitions
+H. Workbook connections
 
-Do not read every formula cell individually merely
-to discover references to ASAP_SQL.
+For every worksheet, record start and completion.
 
-Prefer Excel-native Range.Find / FindNext.
+Identify the exact operation consuming the most time.
 
-Search for:
+Before potentially blocking COM calls, log the
+operation and target object.
 
-    ASAP_SQL
+## 3. Investigate Excessive COM Calls
 
-with explicit settings:
+Inspect for inefficient patterns:
 
-    LookIn = xlFormulas
-    LookAt = xlPart
-    SearchOrder = xlByRows
-    SearchDirection = xlNext
-    MatchCase = False
-    SearchFormat = False
+- Individual cell.Formula calls
+- Repeated UsedRange enumeration
+- Enumerating entire columns
+- Per-cell conditional formatting inspection
+- Repeated Formula/Formula2 reads
+- Repeated workbook object enumeration
+- Expensive whole-workbook snapshots
 
-Handle FindNext wraparound correctly.
+Prefer Range.Find/FindNext for locating ASAP_SQL
+references in formula cells.
 
-Inspect and validate matching formulas before migration.
+Preserve dependency-detection correctness.
 
-Use targeted matching so unrelated SQL strings
-or ordinary text are not treated as sheet references.
+Do not skip hidden worksheets or indirect references.
 
-Where necessary, use bulk Formula/Formula2 extraction
-in bounded chunks instead of one COM call per cell.
+## 4. Preserve Existing Functionality
 
-Preserve dynamic-array and implicit-intersection
-semantics. Do not silently convert Formula2 to Formula
-or vice versa.
+Do NOT alter:
 
-## 3. Optimize Workbook Object Auditing
+- Formula migration rules
+- Verified header mapping
+- Financial calculations
+- Sensitivity label enforcement
+- Version naming
+- Excel workbook preservation
+- Existing fail-closed behavior
 
-Avoid scanning every cell individually for:
+## 5. Audit Execution
 
-- Conditional formatting
-- Data validation
-- Other workbook metadata
+Run one controlled audit:
 
-Inspect rules and objects at the appropriate
-worksheet/workbook collection level.
+python tools/remap_proof.py --deal AALC2201 --audit-only --com-timeout 1200
 
-Preserve coverage of indirect references.
+Use the correct existing CLI path and arguments.
 
-If an object cannot be inspected reliably,
-report an unresolved dependency instead of
-assuming it is safe.
+Do not prematurely terminate a healthy running audit.
 
-Do not disable existing safety checks for speed.
+If execution is interrupted or times out,
+preserve all progress logs and checkpoints.
 
-## 4. Optimize Snapshot and Comparison
+Never terminate pre-existing user Excel processes.
 
-Inspect the existing baseline snapshot implementation.
+## 6. Required Results
 
-Avoid unnecessary per-cell COM calls.
+Report:
 
-Use efficient bounded bulk reads where safe.
+1. Total audit execution time, if completed
+2. The slowest worksheet
+3. The slowest dependency category
+4. The exact expensive COM operation
+5. Number of formulas inspected
+6. Number of ASAP_SQL dependencies found
+7. Whether audit completed
+8. Evidence-based optimization recommendation
 
-Preserve:
-- Exact formula comparison
-- Financial-result comparison
-- Unchanged-value verification
-- Workbook structure verification
-- Formatting and connection preservation checks
+If audit fails, provide the last completed checkpoint
+and the exact operation in progress.
 
-Do not weaken financial regression requirements.
+Do not claim performance improvement without
+real workbook timing evidence.
 
-Any optimized comparison must produce the same
-PASS/FAIL conclusions as the existing implementation.
+Do not start another broad optimization before
+identifying the bottleneck.
 
-## 5. Keep Separate Execution Stages
-
-Expose timing for:
-
-1. Open workbook
-2. Inspect sensitivity label
-3. Locate SQL table
-4. Discover dependencies
-5. Verify column mappings
-6. Verify SQL source equivalence
-7. Capture baseline
-8. Rewrite formulas
-9. Recalculate and compare
-10. Delete ASAP_SQL
-11. Save XLSB
-12. Reopen and verify
-
-This will help distinguish slow Excel calculation
-from slow dependency discovery.
-
-## 6. Preserve Existing Safety Requirements
-
-Do not:
-- Modify original XLSB
-- Skip sensitivity-label validation
-- Disable financial regression
-- Hardcode financial results
-- Skip unresolved dependency checks
-- Remove necessary workbook objects
-- Publish incomplete output
-- Kill user-owned Excel processes
-
-Keep the existing isolated-worker timeout protection.
-
-## 7. Validation
-
-First run the optimized audit-only mode
-against AALC2201.
-
-Record actual timings and discovered dependencies.
-
-Compare the optimized scanner against the existing
-scanner on small controlled test workbooks to verify
-that no dependencies are missed.
-
-After the audit passes, attempt a full migration.
-
-Do not label the migration PASS until:
-- All relevant dependencies have been remapped
-- ASAP_SQL is removed
-- Query table remains intact
-- Financial results match
-- Internal label is verified after reopening
-- Versioned XLSB is successfully published
-
-## 8. Deliverables
-
-Provide:
-
-1. Actual cause of the timeout
-2. Before/after dependency scan timings
-3. Number of detected formulas
-4. Number of ASAP_SQL-dependent formulas
-5. Optimization changes
-6. Regression test results
-7. Actual AALC2201 migration results
-8. Any remaining blockers
-
-Do not stop after implementation.
-Run the real audit and full migration if possible.
-
-Execute now.
+Execute the instrumented audit now.
