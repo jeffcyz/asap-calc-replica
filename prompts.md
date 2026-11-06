@@ -1,281 +1,127 @@
+这次已经非常接近首次成功迁移了。AALC2201 的完整 Audit 已经 PASS，现在唯一确认的阻塞原因是缺少 `ASAP_INTERNAL_LABEL_ID` 环境变量。
 
-# ASAP SQL Remap — Resolve Final Audit Blocker and Complete First Migration
+不需要重新修改 Formula Remapping 逻辑，也不需要重新优化 Dependency Scan。
 
-Continue the existing ASAP-SQL-Remap project.
+## 一、当前执行状态
 
-The latest real AALC2201 dependency audit has completed.
+| 项目                      | 状态              |
+| ----------------------- | --------------- |
+| Dependency Audit        | &#x20;PASS      |
+| 48,300 个依赖识别            | &#x20;完成        |
+| `Comparison!AC4` 公式支持   | &#x20;已修复       |
+| `COUNTA` 与 Defined Name | &#x20;已处理       |
+| 自动化测试                   | &#x20;33 Passed |
+| Internal Label API      | &#x20;可正常访问     |
+| Internal Label 环境变量     | &#x20;未配置       |
+| 最终 XLSB 迁移              | 尚未完成            |
 
-Verified results:
+## 二、直接解决：设置已知的 Internal Label GUID
 
-- Dependency discovery completed.
-- Total reported dependencies: 48,301.
-- Dependency scan duration: 1229.920865 seconds.
-- Comparison UsedRange: A1:UF279.
-- Comparison formula discovery: 226.669034 seconds.
-- Chunked Formula2 scanning is operational.
-- The previous FindNext bottleneck was eliminated.
-- Current audit result: AUDIT_FAIL.
-- Only one blocking condition was reported:
+你此前已经确认过公司的 Internal Label ID：
 
-    Comparison!$AC$4
+`dd181445-6ec4-4473-9810-00785f082df0`
 
-    Unsupported finite or direct source reference.
+在当前 VS Code PowerShell Terminal 中执行：
 
-The original workbook remains unchanged.
+```
 
-PRIMARY OBJECTIVE:
+$env:ASAP_INTERNAL_LABEL_ID = "dd181445-6ec4-4473-9810-00785f082df0"
 
-Resolve the remaining unsupported reference safely,
-achieve AUDIT_PASS, and execute the first complete
-AALC2201 XLSB migration.
+Write-Host "Internal Label ID:" $env:ASAP_INTERNAL_LABEL_ID
 
-Do not perform another broad refactoring.
+```
 
-==================================================
-1. INSPECT THE EXACT BLOCKING FORMULA
-==================================================
+随后运行：
 
-Read the actual formula at:
+```
 
-    Comparison!$AC$4
+python tools/remap_proof.py --deal AALC2201 --com-timeout 1800
 
-Report:
+```
 
-- Complete original formula
-- Referenced ASAP_SQL cells/ranges
-- Absolute and relative reference semantics
-- Original calculated result
-- Whether it references a header, data row,
-  control value, or summary row
-- Whether the referenced source data exists
-  in tblASAP_SQL_DB
-- Whether equivalent behavior can be guaranteed
+这里假设你在 Repository 根目录执行，且当前 Copilot 代码仍沿用 `tools/remap_proof.py` 路径。
 
-Do not assume the reference is a normal data cell.
+如果你希望以后新开的 PowerShell Terminal 也能识别这个环境变量，可以使用：
 
-==================================================
-2. IMPLEMENT SAFE FINITE/DIRECT REFERENCES
-==================================================
+```
+[Environment]::SetEnvironmentVariable(
+    "ASAP_INTERNAL_LABEL_ID",
+    "dd181445-6ec4-4473-9810-00785f082df0",
+    "User"
+)
+```
 
-Extend formula migration only as required.
+持久化设置只对之后新开的进程生效；当前 Terminal 仍需使用第一段 `$env:` 设置。
 
-Potential patterns include:
+## 三、我建议对工具做一个永久性的小改进
 
-    ASAP_SQL!$H$15
-    ASAP_SQL!H15
-    ASAP_SQL!$H$15:$H$25
+现在你已经确认：
 
-These are examples, not confirmed workbook formulas.
+- 原始 Proof 自带 `Internal` Label。
+- `GetLabel()` 可以正常返回。
+- 实际 LabelId 与预期一致。
 
-Support only patterns for which a verified
-semantic transformation is available.
+那么在迁移时，程序应当优先保留并验证原文件已有的 Internal Label，而不是不论情况如何都要求重新配置环境变量。
 
-For direct data-row references, consider:
+建议给 Copilot 这段简短 Prompt：
 
-    INDEX(tblASAP_SQL_DB[VerifiedHeader], row_index)
+Update the existing Sensitivity Label handling in `remap_proof.py`.
 
-ONLY when all required conditions are proven:
+The AALC2201 audit is now PASS, but migration is blocked because `ASAP_INTERNAL_LABEL_ID` is not configured.
 
-- Source row mapping is unambiguous.
-- Data rows correspond exactly.
-- Row ordering semantics are preserved.
-- Refresh behavior remains equivalent.
-- Relative/absolute reference behavior remains valid.
-- No hidden filters or additional SQL rows
-  change the intended result.
+The original workbook already has the correct Internal sensitivity label, previously verified as:
 
-If these conditions cannot be proven, use another
-verified semantic mapping or fail closed.
+`dd181445-6ec4-4473-9810-00785f082df0`
 
-Do not create a positional INDEX mapping merely
-to eliminate an audit blocker.
+Implement the following minimal change:
 
-Do not introduce hardcoded financial values.
+1. Inspect the original workbook's sensitivity label through `GetLabel()`.
+2. If the existing LabelId matches the approved Internal LabelId, preserve it without unnecessary reassignment.
+3. Do not require label-assignment environment variables when no label assignment is necessary.
+4. If the workbook is unlabeled, require authorized configuration before applying Internal.
+5. If the workbook has a different label, fail closed rather than overwrite or downgrade it.
+6. After saving and reopening the XLSB, verify that the persisted LabelId still matches Internal.
+7. Keep the approved expected LabelId in an appropriate local configuration, without unnecessarily publishing tenant-specific configuration in the public repository.
+8. Preserve all other migration functionality and existing safeguards.
 
-==================================================
-3. HANDLE SPECIAL REFERENCE TYPES
-==================================================
+Do not modify formula mapping, dependency scanning, versioning, financial calculations, or workbook-preservation logic.
 
-If the formula references:
+Add focused regression tests, then execute the actual AALC2201 migration using the existing PASS audit evidence where it is still valid.
 
-A. A table header:
-   Use the verified structured header reference
-   only when semantically equivalent.
+Report the final filename, formula migration count, financial comparison result, workbook preservation result, and persisted sensitivity label.
 
-B. A source data cell:
-   Use verified row/field lookup semantics.
+Do not claim success until the final versioned XLSB has been saved, reopened, and fully validated.
 
-C. A finite aggregate range:
-   Preserve exact inclusion, aggregation,
-   and row-boundary behavior.
+## 四、这轮最应该关注什么？
 
-D. A source summary/control cell:
-   Determine whether an equivalent value exists
-   in the SQL table without inventing a mapping.
+下一次成功执行后，应该看到类似以下结果：
 
-E. A copied relative reference:
-   Preserve intended fill/copy behavior,
-   not merely the current displayed result.
+AALC2201 Migration
 
-If exact equivalence is impossible,
-stop and identify the specific limitation.
+待验证
 
-==================================================
-4. VALIDATE THE 48,301 DEPENDENCIES
-==================================================
+Dependency Audit
 
-Distinguish:
+PASS
 
-- Number of unique formula cells
-- Number of ASAP_SQL reference occurrences
-- Number of source columns referenced
-- Number of supported formula patterns
-- Number of unsupported formula patterns
+Formula Remapping
 
-Do not assume 48,301 represents unique formulas.
+Pending
 
-Ensure that all original dependencies have been
-identified and accounted for.
+Financial Tie-out
 
-No dependency may be silently skipped.
+Pending
 
-Preserve the existing completed audit evidence.
+XLSB Save / Reopen
 
-==================================================
-5. MINIMAL IMPLEMENTATION CHANGES
-==================================================
+Pending
 
-Modify only the necessary formula parsing,
-rewriting, mapping, and validation components.
+Sensitivity Label
 
-Do not change:
+Internal — Pending
 
-- Existing SUMIFS migration behavior
-- Existing COUNTIFS migration behavior
-- Existing lookup behavior
-- Excel COM lifecycle
-- Sensitivity label handling
-- Versioning
-- Workbook preservation rules
-- Worker isolation
-- Fail-closed safeguards
+Version Increment
 
-Add focused tests for the newly supported reference
-pattern and its edge cases.
+Pending
 
-==================================================
-6. RERUN COMPLETE AUDIT
-==================================================
-
-Execute the real AALC2201 audit.
-
-Use a supervisor timeout supported by the actual
-measured duration and retain persistent checkpoints.
-
-Confirm:
-
-    AUDIT_PASS
-
-Required evidence:
-
-- Total dependency count
-- Unsupported dependency count = 0
-- All required SQL headers verified
-- Data equivalence verified
-- All workbook-object checks passed
-
-Do not attempt final migration if audit fails.
-
-==================================================
-7. EXECUTE FIRST FULL MIGRATION
-==================================================
-
-After AUDIT_PASS, perform one real AALC2201
-migration using the existing versioned input.
-
-Requirements:
-
-1. Preserve original XLSB.
-2. Rewrite all supported ASAP_SQL references.
-3. Preserve unrelated formulas.
-4. Preserve financial results.
-5. Delete ASAP_SQL only after dependency validation.
-6. Preserve Query and tblASAP_SQL_DB.
-7. Preserve workbook formatting and structure.
-8. Preserve or verify the Internal sensitivity label.
-9. Save as the next appropriate version.
-10. Reopen and validate the saved XLSB.
-
-Do not publish a partially verified workbook.
-
-==================================================
-8. LARGE-WORKBOOK PERFORMANCE
-==================================================
-
-Because approximately 48,301 dependencies were found,
-measure formula replacement and regression performance.
-
-Avoid unnecessary one-cell-at-a-time COM reads.
-
-Use bounded bulk reads and safe targeted writes
-where they preserve formula semantics.
-
-Do not bulk overwrite unrelated formulas.
-
-Record:
-
-- Formula rewrite duration
-- Recalculation duration
-- Financial comparison duration
-- Workbook structure comparison duration
-- Save duration
-- Reopen duration
-- Sensitivity label verification duration
-
-Do not weaken validation solely to improve speed.
-
-==================================================
-9. FINAL REPORT
-==================================================
-
-Provide:
-
-A. Exact original Comparison!AC4 formula.
-
-B. Its verified replacement formula.
-
-C. Explanation of why the mapping is equivalent.
-
-D. Final audit status.
-
-E. Number of unique affected formula cells.
-
-F. Number of reference occurrences migrated.
-
-G. Number of unsupported references remaining.
-
-H. Full migration execution time.
-
-I. Financial comparison result.
-
-J. Workbook preservation result.
-
-K. Internal label persistence result.
-
-L. Original and final versioned filenames.
-
-M. Final output path.
-
-N. Overall PASS / FAIL.
-
-If final migration fails, report the exact
-next blocker and preserve the original workbook.
-
-Do not claim success merely because unit tests pass.
-
-EXECUTION:
-
-Perform the targeted fix, run the audit, and
-attempt the first complete migration.
-
-Do not stop after describing a plan.
+我的建议：先直接设置环境变量并尝试完整迁移。 这是当前最短的解决路径。上述永久性改进可以随后实施，以免你每次处理不同 Deal 都要重复配置同一个 Internal Label。
