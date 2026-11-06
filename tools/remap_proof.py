@@ -415,7 +415,8 @@ def main():
     if not tasks:
         print("No XLSB input files in selected scope.")
         return 0
-    return 0 if all(run_file(path, deal, cfg) for path, deal in tasks) else 1
+    results = [run_file(path, deal, cfg) for path, deal in tasks]
+    return 0 if all(results) else 1
 
 if __name__ == "__main__":
     sys.exit(main())
