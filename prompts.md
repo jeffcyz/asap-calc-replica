@@ -1,21 +1,26 @@
-
 Option Explicit
 
-Sub InsertNegativeTotal()
+Sub InsertTotalNegative()
 
     '========== PARAMETERS ==========
     Const SHEET_NAME As String = "AggregateAudit"
     Const TARGET_COL As String = "S"
-    Const NEW_HEADER As String = "Negative Total"
+    Const NEW_HEADER As String = "Total Negative"
+    Const SOURCE_HEADER As String = "SummaryTotal"
     '================================
 
     Dim ws As Worksheet
     Dim targetColNum As Long
     Dim sourceColNum As Long
+    Dim headerCell As Range
+    Dim sourceHeaderCell As Range
+
+    Dim headerRow As Long
     Dim lastRow As Long
     Dim r As Long
     Dim f As String
     Dim countUpdated As Long
+    Dim isExisting As Boolean
 
     Dim oldCalc As XlCalculation
     Dim oldScreen As Boolean
@@ -23,21 +28,55 @@ Sub InsertNegativeTotal()
 
     Set ws = ActiveWorkbook.Worksheets(SHEET_NAME)
 
-    ' Determine target and preceding columns
     targetColNum = ws.Columns(TARGET_COL).Column
     sourceColNum = targetColNum - 1
 
     If sourceColNum < 1 Then Exit Sub
 
-    ' Prevent duplicate insertion
-    If ws.Cells(1, targetColNum).Value = NEW_HEADER Then
-        MsgBox "Column already exists."
-        Exit Sub
-    End If
-
-    ' Last used row of preceding column
+    ' Last row of preceding column
     lastRow = ws.Cells(ws.Rows.Count, _
                       sourceColNum).End(xlUp).Row
+
+    ' Find Total Negative anywhere in target column
+    Set headerCell = ws.Columns(targetColNum).Find( _
+        What:=NEW_HEADER, _
+        LookIn:=xlValues, _
+        LookAt:=xlWhole, _
+        SearchOrder:=xlByRows, _
+        SearchDirection:=xlNext, _
+        MatchCase:=False)
+
+    isExisting = Not headerCell Is Nothing
+
+    If isExisting Then
+
+        ' Use actual row of existing header
+        headerRow = headerCell.Row
+
+    Else
+
+        ' Find SummaryTotal header in preceding column
+        Set sourceHeaderCell = ws.Columns(sourceColNum).Find( _
+            What:=SOURCE_HEADER, _
+            LookIn:=xlValues, _
+            LookAt:=xlWhole, _
+            SearchOrder:=xlByRows, _
+            SearchDirection:=xlNext, _
+            MatchCase:=False)
+
+        If sourceHeaderCell Is Nothing Then
+            MsgBox "Source header not found."
+            Exit Sub
+        End If
+
+        headerRow = sourceHeaderCell.Row
+
+    End If
+
+    If lastRow <= headerRow Then
+        MsgBox "No source data below header."
+        Exit Sub
+    End If
 
     oldCalc = Application.Calculation
     oldScreen = Application.ScreenUpdating
@@ -49,26 +88,30 @@ Sub InsertNegativeTotal()
     Application.EnableEvents = False
     Application.Calculation = xlCalculationManual
 
-    ' Insert target column
-    ws.Columns(targetColNum).Insert Shift:=xlToRight
+    If Not isExisting Then
 
-    ' Copy source formatting
-    ws.Range(ws.Cells(1, sourceColNum), _
-             ws.Cells(lastRow, sourceColNum)).Copy
+        ' Insert new column
+        ws.Columns(targetColNum).Insert Shift:=xlToRight
 
-    ws.Cells(1, targetColNum).PasteSpecial _
-        Paste:=xlPasteFormats
+        ' Copy formatting
+        ws.Range(ws.Cells(headerRow, sourceColNum), _
+                 ws.Cells(lastRow, sourceColNum)).Copy
 
-    Application.CutCopyMode = False
+        ws.Cells(headerRow, targetColNum).PasteSpecial _
+            Paste:=xlPasteFormats
 
-    ws.Columns(targetColNum).ColumnWidth = _
-        ws.Columns(sourceColNum).ColumnWidth
+        Application.CutCopyMode = False
 
-    ' Set header
-    ws.Cells(1, targetColNum).Value = NEW_HEADER
+        ws.Columns(targetColNum).ColumnWidth = _
+            ws.Columns(sourceColNum).ColumnWidth
 
-    ' Generate formulas until last row of source column
-    For r = 2 To lastRow
+        ' Write new header at source header row
+        ws.Cells(headerRow, targetColNum).Value = NEW_HEADER
+
+    End If
+
+    ' Start immediately BELOW actual header row
+    For r = headerRow + 1 To lastRow
 
         If ws.Cells(r, sourceColNum).HasFormula Then
 
@@ -81,8 +124,10 @@ Sub InsertNegativeTotal()
             countUpdated = countUpdated + 1
 
         Else
+
             ws.Cells(r, targetColNum).Value = _
                 ws.Cells(r, sourceColNum).Value
+
         End If
 
     Next r
@@ -91,14 +136,19 @@ Sub InsertNegativeTotal()
     Application.EnableEvents = oldEvents
     Application.ScreenUpdating = oldScreen
 
-    MsgBox "Completed: " & TARGET_COL & vbCrLf & _
+    MsgBox "Completed!" & vbCrLf & _
+           "Target column: " & TARGET_COL & vbCrLf & _
+           "Existing column: " & isExisting & vbCrLf & _
+           "Header row: " & headerRow & vbCrLf & _
+           "Start row: " & headerRow + 1 & vbCrLf & _
            "Last row: " & lastRow & vbCrLf & _
-           "Formula rows processed: " & countUpdated
+           "Formula rows: " & countUpdated, vbInformation
 
     Exit Sub
 
 ErrorHandler:
 
+    Application.CutCopyMode = False
     Application.Calculation = oldCalc
     Application.EnableEvents = oldEvents
     Application.ScreenUpdating = oldScreen
@@ -136,8 +186,8 @@ Function AddNegativeCondition(ByVal f As String) As String
 
             If ch = """" Then
 
-                ' Handle escaped double quotes
-                If inQuotes And Mid$(f, i + 1, 1) = """" Then
+                If inQuotes And _
+                   Mid$(f, i + 1, 1) = """" Then
                     i = i + 1
                 Else
                     inQuotes = Not inQuotes
@@ -171,11 +221,9 @@ Function AddNegativeCondition(ByVal f As String) As String
 
         If commaPos > 0 And closePos > 0 Then
 
-            ' First SUMIFS argument = sum_range
             sumRange = Trim$(Mid$(f, _
                 openPos + 1, commaPos - openPos - 1))
 
-            ' Append negative condition
             f = Left$(f, closePos - 1) & _
                 "," & sumRange & ",""<""&0" & _
                 Mid$(f, closePos)
