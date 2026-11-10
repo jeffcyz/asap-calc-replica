@@ -1,137 +1,147 @@
+
 Option Explicit
 
-Sub AddNegativeTotalToAggregateAudit()
+Sub InsertNegativeTotal()
 
-    Dim wb As Workbook
+    '========== PARAMETERS ==========
+    Const SHEET_NAME As String = "AggregateAudit"
+    Const TARGET_COL As String = "S"
+    Const NEW_HEADER As String = "Negative Total"
+    '================================
+
     Dim ws As Worksheet
+    Dim targetColNum As Long
+    Dim sourceColNum As Long
     Dim lastRow As Long
-    Dim i As Long
-    Dim originalFormula As String
-    Dim newFormula As String
-    Dim outputPath As String
-    Dim updatedCount As Long
+    Dim r As Long
+    Dim f As String
+    Dim countUpdated As Long
 
-    Dim oldCalculation As XlCalculation
+    Dim oldCalc As XlCalculation
     Dim oldScreen As Boolean
     Dim oldEvents As Boolean
 
-    On Error GoTo ErrorHandler
+    Set ws = ActiveWorkbook.Worksheets(SHEET_NAME)
 
-    Set wb = ActiveWorkbook
-    Set ws = wb.Worksheets("AggregateAudit")
+    ' Determine target and preceding columns
+    targetColNum = ws.Columns(TARGET_COL).Column
+    sourceColNum = targetColNum - 1
 
-    If Trim$(ws.Range("R1").Value) <> "SummaryTotal" Then
-        MsgBox "R1 is not SummaryTotal. Please check.", vbExclamation
+    If sourceColNum < 1 Then Exit Sub
+
+    ' Prevent duplicate insertion
+    If ws.Cells(1, targetColNum).Value = NEW_HEADER Then
+        MsgBox "Column already exists."
         Exit Sub
     End If
 
-    If Trim$(ws.Range("S1").Value) = "Negative Total" Then
-        MsgBox "Negative Total already exists.", vbExclamation
-        Exit Sub
-    End If
+    ' Last used row of preceding column
+    lastRow = ws.Cells(ws.Rows.Count, _
+                      sourceColNum).End(xlUp).Row
 
-    oldCalculation = Application.Calculation
+    oldCalc = Application.Calculation
     oldScreen = Application.ScreenUpdating
     oldEvents = Application.EnableEvents
+
+    On Error GoTo ErrorHandler
 
     Application.ScreenUpdating = False
     Application.EnableEvents = False
     Application.Calculation = xlCalculationManual
 
-    lastRow = ws.Cells(ws.Rows.Count, "R").End(xlUp).Row
+    ' Insert target column
+    ws.Columns(targetColNum).Insert Shift:=xlToRight
 
-    ' Insert column S after SummaryTotal
-    ws.Columns("S").Insert Shift:=xlToRight
+    ' Copy source formatting
+    ws.Range(ws.Cells(1, sourceColNum), _
+             ws.Cells(lastRow, sourceColNum)).Copy
 
-    ' Copy formatting
-    ws.Range("R1:R" & lastRow).Copy
-    ws.Range("S1").PasteSpecial Paste:=xlPasteFormats
+    ws.Cells(1, targetColNum).PasteSpecial _
+        Paste:=xlPasteFormats
+
     Application.CutCopyMode = False
 
-    ws.Columns("S").ColumnWidth = ws.Columns("R").ColumnWidth
+    ws.Columns(targetColNum).ColumnWidth = _
+        ws.Columns(sourceColNum).ColumnWidth
 
-    ' New header
-    ws.Range("S1").Value = "Negative Total"
+    ' Set header
+    ws.Cells(1, targetColNum).Value = NEW_HEADER
 
-    ' Generate Negative Total formulas
-    For i = 2 To lastRow
+    ' Generate formulas until last row of source column
+    For r = 2 To lastRow
 
-        If ws.Cells(i, "R").HasFormula Then
+        If ws.Cells(r, sourceColNum).HasFormula Then
 
-            originalFormula = ws.Cells(i, "R").Formula
+            f = ws.Cells(r, sourceColNum).Formula
 
-            newFormula = AddNegativeSUMIFS(originalFormula)
+            f = AddNegativeCondition(f)
 
-            ws.Cells(i, "S").Formula = newFormula
+            ws.Cells(r, targetColNum).Formula = f
 
-            If newFormula <> originalFormula Then
-                updatedCount = updatedCount + 1
-            End If
+            countUpdated = countUpdated + 1
 
         Else
-            ws.Cells(i, "S").Value = ws.Cells(i, "R").Value
+            ws.Cells(r, targetColNum).Value = _
+                ws.Cells(r, sourceColNum).Value
         End If
 
-    Next i
+    Next r
 
-    ' Save as a new XLSB file
-    outputPath = Left$(wb.FullName, _
-                 InStrRev(wb.FullName, ".") - 1) & _
-                 "_NegativeTotal.xlsb"
-
-    wb.SaveAs Filename:=outputPath, FileFormat:=xlExcel12
-
-    Application.Calculation = oldCalculation
-    Application.ScreenUpdating = oldScreen
+    Application.Calculation = oldCalc
     Application.EnableEvents = oldEvents
+    Application.ScreenUpdating = oldScreen
 
-    MsgBox "Completed!" & vbCrLf & _
-           "Updated formula rows: " & updatedCount & vbCrLf & _
-           "Saved as: " & outputPath, vbInformation
+    MsgBox "Completed: " & TARGET_COL & vbCrLf & _
+           "Last row: " & lastRow & vbCrLf & _
+           "Formula rows processed: " & countUpdated
 
     Exit Sub
 
 ErrorHandler:
 
-    On Error Resume Next
-    Application.Calculation = oldCalculation
-    Application.ScreenUpdating = oldScreen
+    Application.Calculation = oldCalc
     Application.EnableEvents = oldEvents
+    Application.ScreenUpdating = oldScreen
 
-    MsgBox "Error: " & Err.Description, vbCritical
+    MsgBox "Error: " & Err.Description, vbExclamation
 
 End Sub
 
 
-Function AddNegativeSUMIFS(ByVal formulaText As String) As String
+Function AddNegativeCondition(ByVal f As String) As String
 
     Dim p As Long
     Dim openPos As Long
     Dim closePos As Long
-    Dim firstComma As Long
+    Dim commaPos As Long
     Dim i As Long
     Dim depth As Long
     Dim inQuotes As Boolean
     Dim ch As String
     Dim sumRange As String
 
-    ' Process SUMIFS from right to left
-    p = InStrRev(UCase$(formulaText), "SUMIFS(")
+    p = InStrRev(UCase$(f), "SUMIFS(")
 
     Do While p > 0
 
-        openPos = p + 6
+        openPos = p + Len("SUMIFS")
         closePos = 0
-        firstComma = 0
+        commaPos = 0
         depth = 0
         inQuotes = False
 
-        For i = openPos To Len(formulaText)
+        For i = openPos To Len(f)
 
-            ch = Mid$(formulaText, i, 1)
+            ch = Mid$(f, i, 1)
 
             If ch = """" Then
-                inQuotes = Not inQuotes
+
+                ' Handle escaped double quotes
+                If inQuotes And Mid$(f, i + 1, 1) = """" Then
+                    i = i + 1
+                Else
+                    inQuotes = Not inQuotes
+                End If
 
             ElseIf Not inQuotes Then
 
@@ -149,8 +159,8 @@ Function AddNegativeSUMIFS(ByVal formulaText As String) As String
                         End If
 
                     Case ","
-                        If depth = 1 And firstComma = 0 Then
-                            firstComma = i
+                        If depth = 1 And commaPos = 0 Then
+                            commaPos = i
                         End If
 
                 End Select
@@ -159,26 +169,27 @@ Function AddNegativeSUMIFS(ByVal formulaText As String) As String
 
         Next i
 
-        If firstComma > 0 And closePos > 0 Then
+        If commaPos > 0 And closePos > 0 Then
 
-            sumRange = Trim$(Mid$(formulaText, _
-                       openPos + 1, _
-                       firstComma - openPos - 1))
+            ' First SUMIFS argument = sum_range
+            sumRange = Trim$(Mid$(f, _
+                openPos + 1, commaPos - openPos - 1))
 
-            formulaText = Left$(formulaText, closePos - 1) & _
-                          "," & sumRange & ",""<""&0" & _
-                          Mid$(formulaText, closePos)
+            ' Append negative condition
+            f = Left$(f, closePos - 1) & _
+                "," & sumRange & ",""<""&0" & _
+                Mid$(f, closePos)
 
         End If
 
         If p > 1 Then
-            p = InStrRev(UCase$(formulaText), "SUMIFS(", p - 1)
+            p = InStrRev(UCase$(f), "SUMIFS(", p - 1)
         Else
             p = 0
         End If
 
     Loop
 
-    AddNegativeSUMIFS = formulaText
+    AddNegativeCondition = f
 
 End Function
